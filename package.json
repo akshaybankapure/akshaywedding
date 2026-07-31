@@ -1,0 +1,25 @@
+{
+  "name": "akshay-weds-shraddha",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Digital wedding invitation — Akshay Bankapure ♥ Shraddha Sangave · 09.08.2026 · Belagavi × Kolhapur",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@fontsource-variable/fraunces": "^5.3.0",
+    "@fontsource-variable/noto-sans-kannada": "^5.3.0",
+    "@fontsource-variable/sora": "^5.3.0",
+    "@fontsource/tiro-devanagari-marathi": "^5.3.0",
+    "lucide-react": "^0.383.0",
+    "next": "^14.2.15",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "three": "0.128.0"
+  },
+  "engines": {
+    "node": ">=18.17"
+  }
+}
