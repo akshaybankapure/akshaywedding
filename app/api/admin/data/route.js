@@ -1,18 +1,17 @@
 /* Everything the dashboard needs, in one call. */
 import { requireAdmin } from "@/lib/server/auth";
-import { readAll } from "@/lib/server/db";
+import { listRsvps, listBlessings, getCeremony, backendStatus } from "@/lib/server/data";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   if (!await requireAdmin()) return Response.json({ error: "unauthorised" }, { status: 401 });
-  const all = await readAll();
-  const rsvps = all["ps-rsvp-log-v1"] || [];
-  const blessings = all["ps-blessings-v1"] || [];
-  const ceremony = all["ceremony-v1"] || { akshata: 0, guests: [] };
 
-  const attending = rsvps.filter((r) => r.vibe !== "afar");
-  const heads = attending.reduce((n, r) => n + (Number(r.count) || 1), 0);
-  // meals count HEADS and only those actually coming — this is the caterer's number
+  const [rsvps, blessings, ceremony, backend] = await Promise.all([
+    listRsvps(), listBlessings({ includeHidden: true }), getCeremony(), backendStatus(),
+  ]);
+
+  const attending = rsvps.filter((r) => r.attending);
+  // meals count HEADS and only those actually coming — the caterer's number
   const meals = attending.reduce((m, r) => {
     const k = r.meal || "—"; m[k] = (m[k] || 0) + (Number(r.count) || 1); return m;
   }, {});
@@ -21,16 +20,16 @@ export async function GET() {
   }, {});
 
   return Response.json({
-    rsvps, blessings,
+    rsvps, blessings, backend,
     stats: {
       responses: rsvps.length,
       attending: attending.length,
       notAttending: rsvps.length - attending.length,
-      heads,
+      heads: attending.reduce((n, r) => n + (Number(r.count) || 1), 0),
       meals, vibes,
       blessings: blessings.length,
-      akshata: ceremony.akshata || 0,
-      liveGuests: (ceremony.guests || []).length,
+      akshata: ceremony.akshata,
+      liveGuests: ceremony.guests,
     },
   });
 }

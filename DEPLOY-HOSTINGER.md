@@ -17,15 +17,44 @@ Settings to confirm:
 
 Point your domain at the app, and you're live.
 
+
+## Connect the MySQL database (recommended)
+
+You already have one: `u805448495_akshayweds`. Using it beats the JSON file in three ways — it survives redeploys, two guests submitting in the same second can't overwrite each other, and you can read the rows in phpMyAdmin.
+
+In hPanel → your Node.js app → **Environment Variables**, add five:
+
+```
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=u805448495_akshayweds
+DB_USER=u805448495_akshayweds
+DB_PASSWORD=<the password you set for that MySQL user>
+```
+
+Redeploy, then open `/admin`. The dashboard shows which store is live — it should read **mysql** with your database name. That's the whole setup: **the app creates its own tables on first use**, so you never run SQL by hand.
+
+To connect from your laptop instead of the server, use hPanel → Databases → **Remote MySQL** to whitelist your IP, and set `DB_HOST` to the hostname shown there (not `localhost`).
+
+### Tables it creates
+
+| Table | Contents |
+|---|---|
+| `rsvps` | name, attending, guests, meal, note, timestamp |
+| `blessings` | who, message, hidden flag, timestamp |
+| `ceremony` | running akshata total |
+| `ceremony_guests` | one row per device that joined live |
+| `settings` | admin username and password hash |
+
+All `utf8mb4`, so Marathi, Kannada and emoji store correctly.
+
+**If the `DB_*` variables are missing the app silently falls back to the JSON file.** That's convenient locally, but it means a typo in a variable name looks like "my RSVPs vanished." The `/admin` dashboard always states which backend is actually in use — check there first.
+
+**Backups:** phpMyAdmin → Export for a full `.sql` dump; the dashboard CSVs for the caterer.
+
 ## ⚠️ Do this before you send the invite out
 
-**1. Move the database outside the app folder.** By default the guest list lives in `data/kv.json` inside the project. A redeploy can replace that folder — taking every RSVP with it. In hPanel → your app → **Environment Variables**, add:
-
-```
-DATA_DIR=/home/uXXXXXXXX/wedding-data
-```
-
-Use your real home path (find it in File Manager) and pick a folder *outside* `public_html` / the app directory. Create it once; the app writes the file itself. This one variable is the difference between "we have the guest list" and "we lost the guest list."
+**1. Set the `DB_*` variables above**, so the guest list lives in MySQL rather than in a file inside the deploy folder. (If you skip MySQL, at least set `DATA_DIR` to a path outside the app directory, or a redeploy can erase every RSVP.)
 
 **2. Change the admin password.** Visit `https://yourdomain.com/admin`, sign in with `admin` / `admin123`, and change it immediately in **Settings**. Until you do, the dashboard shows a red warning — because anyone who reads this repo knows the default.
 

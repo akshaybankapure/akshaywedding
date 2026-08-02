@@ -5,16 +5,26 @@ import * as THREE from "three";
 /* ═══════════════════════════════════════════════════════════════════
    AKSHAY ♥ SHRADDHA · 09.08.2026
    Smt. Malini Patil Bhavan · Gavani, Belagavi
-   Preview build — the full project adds /admin and server-backed RSVPs.
+
+   An ordinary scrolling page over a fixed 3D backdrop. Scroll progress
+   is written to CSS variables in one rAF loop, so scrolling triggers no
+   React re-renders. Blur effects are desktop-only; the scene renders at
+   1x / 30fps on phones.
    ═══════════════════════════════════════════════════════════════════ */
 
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Sora:wght@300;400;600&family=Tiro+Devanagari+Marathi&family=Noto+Sans+Kannada:wght@300;400&display=swap');
 /* ═══════════════════════════════════════════════════════════════════
-   Akshay ♥ Shraddha — phone-first design system.
-   Authored for a 380px viewport first; larger screens only get more
-   breathing room. The whole invitation lives in one fixed viewport, so
-   there is no page layout to speak of — only layers.
+   Akshay ♥ Shraddha — phone-first.
+
+   Performance rules this file obeys:
+   • The page is an ordinary scrolling document. No fixed panels, no
+     inner scroll containers, nothing that fights native scrolling.
+   • backdrop-filter is DESKTOP ONLY. Blurring a large surface over an
+     animating WebGL canvas is the single most expensive thing a phone
+     browser can be asked to do; on mobile the cards use solid fills.
+   • Nothing animates on scroll except GPU transforms driven by the
+     --heroP / --prog custom properties.
    ═══════════════════════════════════════════════════════════════════ */
 
 :root {
@@ -27,15 +37,20 @@ const CSS = `
   --ink: #f4ead6; --muted: #b6a688;
   --gold: #e3b341; --gold2: #f7d87c;
   --rose: #ff5d8f; --emerald: #23c08f; --maroon: #7c1f38;
-  --card: rgba(21, 27, 56, .72); --line: rgba(227, 179, 65, .28);
-  --glass: rgba(9, 12, 30, .90);
+  --card: #161c3a; --line: rgba(227, 179, 65, .3);
+  --glass: #10152f;
   --safe-t: env(safe-area-inset-top, 0px);
   --safe-b: env(safe-area-inset-bottom, 0px);
 }
 
-.pswrap *, .viewport * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+.pswrap *, .root * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
-
+.pswrap-html-unused {
+  scroll-behavior: smooth;
+  /* the rail and chrome are fixed; keep anchor jumps clear of them */
+  scroll-padding-top: 66px;
+  -webkit-text-size-adjust: 100%;
+}
 
 .pswrap {
   background: var(--bg);
@@ -50,308 +65,226 @@ const CSS = `
 .dev { font-family: var(--font-dev); }
 .kan { font-family: var(--font-kan); }
 
-/* the tall empty element that provides scroll distance */
-.scroller { width: 1px; pointer-events: none; }
-
-/* everything visible lives here, pinned */
-.viewport {
-  position: fixed; inset: 0;
-  color: var(--ink);
-  overflow: hidden;
-  background: linear-gradient(180deg, var(--bg), var(--bg2) 60%, var(--bg));
-  transition: background .8s ease;
+.root {
+  --heroP: 0; --prog: 0;
+  position: relative;
+  min-height: 100dvh;
+  isolation: isolate;
 }
-.viewport[data-theme='day'] {
+.root[data-theme='day'] {
   --bg: #fdf6e8; --bg2: #f7e7ca; --ink: #2b0d18; --muted: #6b4a36;
   --gold: #8a6210; --gold2: #a87c1c; --rose: #a8143f; --emerald: #0b6249;
-  --card: rgba(255, 252, 245, .92); --line: rgba(138, 98, 16, .34);
-  --glass: rgba(255, 251, 243, .94);
+  --card: #fffcf5; --line: rgba(138, 98, 16, .34); --glass: #fffdf7;
+  background: var(--bg);
 }
-.viewport.party {
-  --gold: #ffd23f; --rose: #ff2e88; --emerald: #14e3c2; --line: rgba(255, 46, 136, .4);
+.root.party { --gold: #ffd23f; --rose: #ff2e88; --emerald: #14e3c2; }
+
+/* fixed backdrop: the world you travel through */
+.bg {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background: linear-gradient(180deg, var(--bg), var(--bg2) 55%, var(--bg));
+}
+.stage3d { position: absolute; inset: 0; }
+
+/* thin progress line, driven by --prog (no JS per frame) */
+.progressBar {
+  position: fixed; top: 0; left: 0; right: 0; height: 2px; z-index: 30;
+  transform-origin: 0 50%; transform: scaleX(var(--prog));
+  background: linear-gradient(90deg, var(--gold), var(--rose));
+  pointer-events: none;
 }
 
-.grain::after {
-  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 6; opacity: .05;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+/* ── sections ─────────────────────────────────────────────────── */
+.act {
+  position: relative; z-index: 2;
+  width: min(100% - 24px, 640px);
+  margin: 0 auto;
+  padding: 76px 0 84px;
+  display: flex; flex-direction: column; gap: 12px;
+  content-visibility: auto;                 /* skip offscreen paint work */
+  contain-intrinsic-size: auto 900px;
+}
+.act.hero {
+  min-height: 100dvh;
+  justify-content: center;
+  padding-top: calc(72px + var(--safe-t));
+  content-visibility: visible;
 }
 
-.stage3d { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
-
-/* ── continuous SVG skin ─────────────────────────────────────── */
-
-.liveRangoli {
-  position: absolute; left: 50%; top: 50%;
-  width: min(78vmin, 460px); height: min(78vmin, 460px);
-  margin: calc(min(78vmin, 460px) / -2) 0 0 calc(min(78vmin, 460px) / -2);
-  z-index: 2; pointer-events: none; opacity: .17;
-  transition: transform .3s linear;
+.heroInner {
+  display: flex; flex-direction: column; gap: 9px; text-align: center;
+  /* fades up as the curtain parts */
+  opacity: clamp(0, calc((var(--heroP) - .28) * 3), 1);
+  transform: translate3d(0, calc((1 - clamp(0, calc((var(--heroP) - .28) * 3), 1)) * 14px), 0);
 }
-.liveRangoli ellipse {
-  fill: none; stroke: var(--gold); stroke-width: 1.6; transform-origin: center;
-  animation: breathe 5s ease-in-out infinite;
-}
-.liveRangoli .rgCore { fill: var(--rose); opacity: .8; }
-.liveRangoli .rgRim {
-  fill: none; stroke: var(--gold); stroke-width: .8; stroke-dasharray: 3 7;
-  animation: spin 40s linear infinite; transform-origin: center;
-}
-.liveRangoli .rgRim.slow { stroke: var(--emerald); animation-duration: 70s; animation-direction: reverse; }
-.liveRangoli.party { opacity: .3; }
-@keyframes breathe { 50% { transform: scale(1.09) rotate(6deg); } }
-@keyframes spin { to { transform: rotate(360deg); } }
 
-.confetti { position: absolute; inset: 0; z-index: 5; pointer-events: none; width: 100%; height: 100%; }
+.eyebrow {
+  font-size: 10px; letter-spacing: .22em; text-transform: uppercase;
+  color: var(--rose); display: flex; align-items: center; gap: 6px;
+}
+.h2 { font-size: clamp(25px, 7.5vw, 40px); line-height: 1.12; margin-bottom: 4px; }
 
-/* ── chrome ──────────────────────────────────────────────────── */
+.invok { font-size: clamp(11px, 3.3vw, 14px); color: var(--gold); }
+.couple { display: flex; flex-direction: column; gap: 10px; margin: 8px 0 4px; }
+.side { display: flex; flex-direction: column; gap: 2px; }
+.one {
+  font-size: clamp(40px, 15vw, 78px); line-height: 1; letter-spacing: -.02em;
+  background: linear-gradient(105deg, var(--gold) 25%, #fff3c8 48%, var(--gold) 70%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.oneDev { font-size: clamp(15px, 4.6vw, 21px); color: var(--muted); }
+.fam { font-size: clamp(11px, 3.2vw, 13px); color: var(--muted); line-height: 1.5; }
+.fam.dim, .dim { opacity: .75; }
+.weds { display: flex; align-items: center; gap: 12px; margin: 4px 0; }
+.weds em { font-style: italic; font-size: clamp(15px, 4.4vw, 20px); color: var(--rose); }
+.wline { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--line), transparent); }
+
+.bigDate { font-size: clamp(26px, 9vw, 46px); color: var(--gold); letter-spacing: .08em; margin-top: 8px; }
+.muhurt { font-size: 11.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.venueLine { font-size: 12.5px; opacity: .92; }
+
+.cue {
+  margin: 22px auto 0; background: none; border: 0; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  color: var(--muted); font-family: inherit;
+  animation: bob 2.2s ease-in-out infinite;
+}
+.cue span { font-family: var(--font-dev); font-size: 15px; color: var(--gold); }
+.cue i { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; font-style: normal; }
+@keyframes bob { 50% { transform: translateY(7px); } }
+
+/* ── chrome ───────────────────────────────────────────────────── */
 .chrome {
-  position: absolute; z-index: 7; left: 0; right: 0; top: 0;
-  padding: calc(10px + var(--safe-t)) 14px 10px;
+  position: fixed; z-index: 25; left: 0; right: 0; top: 0;
+  padding: calc(9px + var(--safe-t)) 12px 9px;
   display: flex; align-items: center; justify-content: space-between;
-  background: linear-gradient(180deg, rgba(0, 0, 0, .35), transparent);
+  background: linear-gradient(180deg, var(--bg) 30%, transparent);
 }
-.viewport[data-theme='day'] .chrome { background: linear-gradient(180deg, rgba(255, 255, 255, .5), transparent); }
 .mono {
   font-family: var(--font-display); font-style: italic; font-size: 17px;
-  letter-spacing: .05em; color: var(--gold);
-  display: inline-flex; align-items: center; gap: 5px;
+  color: var(--gold); display: inline-flex; align-items: center; gap: 5px;
 }
-.chromeBtns { display: flex; gap: 7px; }
+.chromeBtns { display: flex; gap: 6px; }
 .ic {
-  width: 40px; height: 40px; border-radius: 50%;
-  display: grid; place-items: center; cursor: pointer;
-  background: var(--card); color: var(--ink);
-  border: 1px solid var(--line); backdrop-filter: blur(8px);
-  transition: transform .2s, color .2s, border-color .2s;
+  width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
+  display: grid; place-items: center;
+  background: var(--card); color: var(--ink); border: 1px solid var(--line);
+  transition: transform .18s, color .18s, border-color .18s;
 }
 .ic:active { transform: scale(.9); }
-.ic.on { color: var(--rose); border-color: var(--rose); box-shadow: 0 0 16px rgba(255, 46, 136, .5); }
+.ic.on { color: var(--rose); border-color: var(--rose); }
 
-/* act rail — bottom on phones, side on desktop */
+/* rail: bottom on phones, side on desktop. A jump list only. */
 .rail {
-  position: absolute; z-index: 7; left: 0; right: 0; bottom: 0;
-  padding: 8px 8px calc(8px + var(--safe-b));
-  display: flex; gap: 4px; justify-content: center; align-items: center;
-  background: linear-gradient(0deg, rgba(0, 0, 0, .45), transparent);
+  position: fixed; z-index: 25; left: 0; right: 0; bottom: 0;
+  display: flex; gap: 2px; align-items: center;
+  padding: 6px 8px calc(6px + var(--safe-b));
+  background: linear-gradient(0deg, var(--bg) 45%, transparent);
   overflow-x: auto; scrollbar-width: none;
+  overscroll-behavior-x: contain;
 }
 .rail::-webkit-scrollbar { display: none; }
 .railDot {
-  flex: 0 0 auto; background: none; border: 0; cursor: pointer;
-  padding: 8px 9px; min-height: 44px; color: var(--muted);
-  font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase;
-  border-bottom: 2px solid transparent; transition: color .3s, border-color .3s;
-  font-family: inherit;
+  flex: 0 0 auto; background: none; border: 0; cursor: pointer; font-family: inherit;
+  padding: 9px 10px; min-height: 42px; color: var(--muted);
+  font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+  border-bottom: 2px solid transparent;
 }
 .railDot.on { color: var(--gold); border-bottom-color: var(--gold); }
-.railFill { display: none; }
 
-.ticker {
-  position: absolute; z-index: 7; left: 0; right: 0; top: calc(58px + var(--safe-t));
-  text-align: center; pointer-events: none;
-  animation: tickIn .6s ease;
-}
-.ticker span { font-size: 15px; color: var(--gold); }
-.ticker i {
-  display: block; font-size: 10px; letter-spacing: .18em; text-transform: uppercase;
-  color: var(--muted); font-style: normal; margin-top: 1px;
-}
-@keyframes tickIn { from { opacity: 0; transform: translateY(-6px); } }
-
-/* ── act panels ──────────────────────────────────────────────── */
-.panel {
-  position: absolute; z-index: 4;
-  left: 50%; top: 50%; translate: -50% -50%;
-  width: min(92vw, 600px);
-  max-width: calc(100vw - 22px);
-  max-height: calc(100dvh - 176px);
-  display: flex; flex-direction: column;
-  will-change: transform, opacity;
-}
-
-/* text always sits on glass — never naked over the 3D */
-.glass {
-  display: flex; flex-direction: column; gap: 11px;
-  flex: 0 1 auto; max-height: 100%; min-height: 0;
-  padding: 18px 16px;
-  border-radius: 22px;
-  background: var(--glass);
+/* ── shared surfaces ──────────────────────────────────────────── */
+.card, .famCard, .ev, .pinCard, .foot, .bless {
+  background: var(--card);
   border: 1px solid var(--line);
-  backdrop-filter: blur(18px) saturate(1.25);
-  -webkit-backdrop-filter: blur(18px) saturate(1.25);
-  box-shadow: 0 24px 70px rgba(0, 0, 0, .42), inset 0 1px 0 rgba(255, 255, 255, .08);
-  overflow: hidden;
-  min-height: 0;
+  border-radius: 14px;
+  padding: 14px;
 }
-.viewport[data-theme='day'] .beat,
-.viewport[data-theme='day'] .ev,
-.viewport[data-theme='day'] .pinCard,
-.viewport[data-theme='day'] .foot { background: rgba(120, 80, 20, .06); }
-.viewport[data-theme='day'] .glass { box-shadow: 0 20px 60px rgba(90, 50, 20, .18); }
-.panel.center { text-align: center; align-items: center; }
 
-.panel.center .flowWrap { position: relative; flex: 1 1 auto; min-height: 0; display: flex; }
-
-.flow {
-  flex: 1 1 auto; min-height: 0;
-  overflow-y: auto;
-  /* Keep this AUTO. The 'contain' value swallows the wheel and freezes
-     the whole page; auto lets the scroll chain on to the journey. */
-  overscroll-behavior-y: auto;
-  -webkit-overflow-scrolling: touch;
-  touch-action: pan-y;
-  scrollbar-width: thin;
-  scrollbar-color: var(--line) transparent;
-  padding-right: 6px;
-  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 12px, #000 calc(100% - 16px), transparent 100%);
-  mask-image: linear-gradient(180deg, transparent 0, #000 12px, #000 calc(100% - 16px), transparent 100%);
-}
-.flow::-webkit-scrollbar { width: 5px; }
-.flow::-webkit-scrollbar-track { background: transparent; }
-.flow::-webkit-scrollbar-thumb { background: var(--line); border-radius: 6px; }
-.flow::-webkit-scrollbar-thumb:hover { background: var(--gold); }
-
-.flowInner { display: flex; flex-direction: column; gap: 9px; padding-bottom: 10px; }
-
-/* "there's more below" nudge */
-.flowMore {
-  position: absolute; left: 50%; bottom: -2px; translate: -50% 0;
-  width: 30px; height: 30px; border-radius: 50%;
-  display: grid; place-items: center; pointer-events: none;
-  background: var(--glass); border: 1px solid var(--line); color: var(--gold);
-  opacity: 0; transition: opacity .3s;
-  animation: bob 2s ease-in-out infinite;
-}
-.flowMore.on { opacity: .9; }
-
-.eyebrow { justify-content: center; }
-.h2 { font-size: clamp(26px, 8vw, 46px); line-height: 1.08; letter-spacing: -.01em; }
-
-.invok { font-size: clamp(11px, 3.4vw, 14px); color: var(--gold); letter-spacing: .04em; }
-.names {
-  display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
-  gap: 8px; font-size: clamp(34px, 12vw, 78px); line-height: 1.02;
-  transition: opacity .4s, transform .4s;
-}
-.names em { font-size: .5em; color: var(--rose); font-style: italic; }
-.sub { font-size: clamp(13px, 4vw, 18px); color: var(--muted); }
-.bigDate {
-  font-size: clamp(24px, 8vw, 44px); color: var(--gold);
-  letter-spacing: .1em; margin-top: 6px;
-}
-.muhurt { font-size: 12px; letter-spacing: .1em; color: var(--muted); text-transform: uppercase; }
-.parents { font-size: 11.5px; opacity: .85; }
-
-.shimmer {
-  background: linear-gradient(108deg, var(--gold) 20%, #fff3c8 45%, var(--gold) 70%);
-  background-size: 220% 100%; -webkit-background-clip: text; background-clip: text;
-  color: transparent; animation: shim 5s ease-in-out infinite;
-}
-@keyframes shim { 0% { background-position: 130% 0; } 100% { background-position: -130% 0; } }
-
-/* ── controls & cards ────────────────────────────────────────── */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 7px;
-  min-height: 44px; padding: 11px 16px; border-radius: 999px;
-  font-family: inherit; font-size: 13.5px; cursor: pointer;
-  border: 1px solid var(--line); background: var(--card); color: var(--ink);
-  backdrop-filter: blur(8px); transition: transform .18s, box-shadow .25s;
-  text-decoration: none;
+  min-height: 46px; padding: 12px 17px; border-radius: 999px;
+  font-family: inherit; font-size: 14px; cursor: pointer; text-decoration: none;
+  background: var(--card); border: 1px solid var(--line); color: var(--ink);
+  transition: transform .16s;
 }
 .btn:active { transform: scale(.96); }
 .btn.solid {
   background: linear-gradient(120deg, var(--gold), var(--gold2));
   color: #241503; border-color: transparent; font-weight: 600;
-  box-shadow: 0 10px 30px rgba(227, 179, 65, .3);
 }
-.cta { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 12px; transition: opacity .4s; }
+.btn.sm { min-height: 40px; padding: 9px 13px; font-size: 12.5px; }
+.cta { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 14px; }
 
-.mode { display: flex; gap: 6px; }
-.mode button {
-  flex: 1; min-height: 44px; padding: 10px; border-radius: 12px; cursor: pointer;
-  font-family: inherit; font-size: 12.5px;
-  background: var(--card); border: 1px solid var(--line); color: var(--muted);
-  transition: color .25s, border-color .25s;
-}
-.mode button.on { color: var(--gold); border-color: var(--gold); }
-
-.beat, .ev, .pinCard, .foot {
-  background: rgba(255, 255, 255, .045); border: 1px solid var(--line); border-radius: 14px;
-  padding: 13px;
-  animation: rise .55s cubic-bezier(.2, .9, .3, 1) both;
-}
-@keyframes rise { from { opacity: 0; transform: translateY(14px); } }
-.beat h3, .ev h3, .pinCard h3 { font-size: 17px; margin: 3px 0 5px; }
-.beat p, .ev p { font-size: 13.5px; }
-.beat p { animation: fadeIn .45s ease; }
-@keyframes fadeIn { from { opacity: 0; } }
-.beatY { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--rose); }
-.tag { font-family: var(--font-display); font-style: italic; font-size: 12.5px; color: var(--rose); }
-.meta { font-size: 12px; color: var(--muted); }
-.dress { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.note { font-size: 12.5px; color: var(--muted); display: flex; gap: 8px; align-items: flex-start; }
+.meta { font-size: 12.5px; color: var(--muted); }
+.tag { font-family: var(--font-display); font-style: italic; font-size: 13px; color: var(--rose); }
+.dress { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
 .dress b { color: var(--gold); }
+.goldtxt { color: var(--gold); }
+.lede { font-size: 13.5px; color: var(--muted); }
 
 .ev { display: flex; gap: 12px; align-items: flex-start; }
 .evEmoji { font-size: 26px; line-height: 1; }
 .evBody { flex: 1; min-width: 0; }
-.evBtns { display: flex; gap: 6px; margin-top: 9px; flex-wrap: wrap; }
-.evBtns .btn { min-height: 38px; padding: 8px 12px; font-size: 12px; }
+.ev h3, .famCard h3, .pinCard h3 { font-size: 18px; margin: 3px 0 5px; }
+.evBtns { display: flex; gap: 7px; margin-top: 10px; flex-wrap: wrap; }
 
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip {
-  font-size: 11.5px; padding: 7px 11px; border-radius: 999px;
+  font-size: 12px; padding: 8px 12px; border-radius: 999px;
   border: 1px solid var(--line); color: var(--muted); background: var(--card);
 }
 
 .pinRow { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
 .pinRow::-webkit-scrollbar { display: none; }
 .pinChip {
-  flex: 0 0 auto; min-height: 40px; padding: 9px 13px; border-radius: 999px; cursor: pointer;
-  font-family: inherit; font-size: 12px; white-space: nowrap;
+  flex: 0 0 auto; min-height: 42px; padding: 10px 14px; border-radius: 999px; cursor: pointer;
+  font-family: inherit; font-size: 12.5px; white-space: nowrap;
   background: var(--card); border: 1px solid var(--line); color: var(--muted);
-  transition: color .25s, border-color .25s;
 }
 .pinChip.on { color: var(--gold); border-color: var(--gold); }
-.note { font-size: 12px; color: var(--muted); display: flex; gap: 7px; align-items: flex-start; }
 
-.foot { text-align: center; font-size: 12px; color: var(--muted); }
-.foot .display { font-size: 19px; margin-bottom: 6px; }
-.foot p + p { margin-top: 4px; }
-
-.cue {
-  position: absolute; z-index: 7; left: 50%; bottom: calc(64px + var(--safe-b));
-  transform: translateX(-50%); text-align: center; color: var(--muted);
-  animation: bob 2.2s ease-in-out infinite; pointer-events: none;
+.famTag { font-size: 9.5px; letter-spacing: .2em; text-transform: uppercase; color: var(--rose); }
+.famCard p { font-size: 13px; color: var(--muted); }
+.famJoin {
+  text-align: center; font-family: var(--font-display); font-style: italic;
+  font-size: 13.5px; color: var(--gold); padding: 6px 0;
 }
-.cue span { display: block; font-family: var(--font-dev); font-size: 15px; color: var(--gold); }
-.cue i { font-size: 10px; letter-spacing: .18em; text-transform: uppercase; font-style: normal; }
-@keyframes bob { 50% { transform: translate(-50%, 8px); } }
+.ritualLead { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
 
-/* ── larger screens: more room, rail moves to the side ───────── */
-@media (min-width: 820px) {
-  .panel {
-    max-height: calc(100dvh - 150px);
-    width: min(74vw, 620px);
-    left: calc(50% - 68px);
-  }
-  .rail {
-    left: auto; right: 14px; top: 50%; bottom: auto;
-    transform: translateY(-50%); flex-direction: column;
-    align-items: flex-end;
-    background: none; padding: 0; gap: 1px;
-    overflow: visible; max-width: 124px;
-  }
-  .railDot {
-    border-bottom: 0; border-right: 2px solid transparent;
-    text-align: right; white-space: nowrap;
-    padding: 6px 9px 6px 4px; font-size: 9.5px; letter-spacing: .08em;
-  }
-  .railDot.on { border-right-color: var(--gold); }
-  .ticker { top: auto; bottom: 22px; }
+.giftCard {
+  text-align: center; padding: 18px 15px; border-radius: 16px;
+  border: 1px solid var(--gold); color: var(--gold);
+  background: linear-gradient(160deg, rgba(227,179,65,.14), transparent);
 }
+.giftCard h3 { font-size: 20px; margin: 8px 0 5px; color: var(--gold); }
+.giftCard p { font-size: 13px; color: var(--ink); opacity: .88; }
+.giftFoot { color: var(--gold); font-family: var(--font-display); font-style: italic; font-size: 13.5px; }
 
-/* ── focus & motion ──────────────────────────────────────────── */
+.foot { text-align: center; font-size: 12.5px; color: var(--muted); margin-top: 20px; }
+.foot .display { font-size: 20px; color: var(--gold); margin-bottom: 7px; }
+.foot p + p { margin-top: 5px; }
+
 :focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; border-radius: 6px; }
+
+/* ── desktop only: the expensive pretty bits ──────────────────── */
+@media (min-width: 900px) and (pointer: fine) {
+  .card, .famCard, .ev, .pinCard, .foot, .bless, .btn, .chip, .pinChip {
+    background: color-mix(in srgb, var(--card) 78%, transparent);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+  .act { width: min(100% - 40px, 680px); padding: 96px 0 100px; }
+  .rail {
+    left: auto; right: 16px; top: 50%; bottom: auto; transform: translateY(-50%);
+    flex-direction: column; align-items: flex-end;
+    background: none; padding: 0; overflow: visible; max-width: 130px;
+  }
+  .railDot { border-bottom: 0; border-right: 2px solid transparent; text-align: right; white-space: nowrap; }
+  .railDot.on { border-right-color: var(--gold); }
+  .chrome { background: linear-gradient(180deg, rgba(0,0,0,.4), transparent); }
+  .root[data-theme='day'] .chrome { background: linear-gradient(180deg, rgba(255,255,255,.55), transparent); }
+}
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
@@ -366,7 +299,16 @@ const CSS = `
    Two silk halves that part on scroll, with woven texture, gold border,
    tassels and self-drawing embroidery.
    ═══════════════════════════════════════════════════════════════════ */
-.curtain { position: absolute; inset: 0; z-index: 8; pointer-events: none; overflow: hidden; }
+/* The antarpat. --heroP (0→1) is written by the scroll loop; the easing
+   and both cloth transforms are pure CSS, so parting it costs nothing. */
+.curtain {
+  position: fixed; inset: 0; z-index: 12; pointer-events: none; overflow: hidden;
+  --open: clamp(0, calc((var(--heroP) - .10) * 2.1), 1);
+  opacity: clamp(0, calc((1 - var(--heroP)) * 6), 1);
+  visibility: visible;
+}
+.root { --heroP: 0; }
+.hero .curtain { }
 .cloth {
   position: absolute; top: 0; bottom: 0; width: 51%;
   background:
@@ -375,8 +317,14 @@ const CSS = `
   box-shadow: inset 0 0 90px rgba(0,0,0,.55);
   will-change: transform;
 }
-.cloth.L { left: 0; border-right: 3px solid var(--gold); }
-.cloth.R { right: 0; border-left: 3px solid var(--gold); }
+.cloth.L {
+  left: 0; border-right: 3px solid var(--gold);
+  transform: translate3d(calc(var(--open) * -108%), 0, 0) rotate(calc(var(--open) * -1.6deg));
+}
+.cloth.R {
+  right: 0; border-left: 3px solid var(--gold);
+  transform: translate3d(calc(var(--open) * 108%), 0, 0) rotate(calc(var(--open) * 1.6deg));
+}
 .cloth::after {
   content: ''; position: absolute; inset: 8px;
   border: 1px solid rgba(227,179,65,.35); border-radius: 3px;
@@ -400,7 +348,13 @@ const CSS = `
 
 .clothText {
   position: absolute; inset: 0; display: grid; place-items: center;
-  text-align: center; padding: 20px;
+  text-align: center; padding: 24px;
+  opacity: clamp(0, calc(1 - var(--open) * 1.8), 1);
+}
+.clothText .phase1 { opacity: clamp(0, calc(1 - var(--heroP) * 4), 1); }
+.clothText .phase2 {
+  margin-top: -1.35em;
+  opacity: clamp(0, calc((var(--heroP) - .22) * 5), 1);
 }
 .clothText .big { font-size: clamp(20px, 6.4vw, 40px); color: var(--gold2); line-height: 1.25; }
 .clothText .small {
@@ -413,7 +367,7 @@ const CSS = `
    ═══════════════════════════════════════════════════════════════════ */
 .card {
   background: var(--card); border: 1px solid var(--line); border-radius: 16px;
-  padding: 14px; backdrop-filter: blur(10px);
+  padding: 14px;
 }
 .lede { font-size: 13.5px; color: var(--muted); }
 .goldtxt { color: var(--gold); }
@@ -451,7 +405,7 @@ const CSS = `
   background: rgba(255, 255, 255, .045); border: 1px solid var(--line); color: var(--ink);
   transition: border-color .22s, background .22s, transform .14s;
 }
-.viewport[data-theme='day'] .vibe { background: rgba(120, 80, 20, .06); }
+
 .vibe:active { transform: scale(.985); }
 .vibe.on { border-color: var(--gold); background: rgba(227, 179, 65, .1); }
 .vibe .ve { grid-row: 1 / 3; font-size: 22px; line-height: 1; }
@@ -531,7 +485,7 @@ const CSS = `
   background: rgba(255, 255, 255, .045); border: 1px solid var(--line);
   border-radius: 14px; padding: 13px;
 }
-.viewport[data-theme='day'] .famCard { background: rgba(120, 80, 20, .06); }
+
 .famTag {
   font-size: 9.5px; letter-spacing: .2em; text-transform: uppercase; color: var(--rose);
 }
@@ -561,12 +515,11 @@ const CSS = `
    LIVE CEREMONY — the muhurat, for guests joining from afar
    ═══════════════════════════════════════════════════════════════════ */
 .liveBar {
-  position: absolute; z-index: 9; left: 10px; right: 10px;
+  position: fixed; z-index: 26; left: 10px; right: 10px;
   top: calc(58px + var(--safe-t));
   display: flex; align-items: center; gap: 10px;
   padding: 9px 10px 9px 12px; border-radius: 14px;
   background: var(--glass); border: 1px solid var(--gold);
-  backdrop-filter: blur(14px);
   box-shadow: 0 12px 40px rgba(0, 0, 0, .4);
   animation: rise .5s ease both;
 }
@@ -588,14 +541,13 @@ const CSS = `
 }
 
 .liveWrap {
-  position: absolute; inset: 0; z-index: 10;
+  position: fixed; inset: 0; z-index: 40;
   display: grid; place-items: center; padding: 20px;
-  background: radial-gradient(circle at 50% 42%, rgba(60, 12, 40, .84), rgba(6, 8, 22, .96));
-  backdrop-filter: blur(10px);
+  background: radial-gradient(circle at 50% 42%, rgba(48, 10, 34, .95), rgba(6, 8, 22, .99));
   animation: fadeIn .5s ease;
 }
 .liveClose {
-  position: absolute; top: calc(12px + var(--safe-t)); right: 14px;
+  position: fixed; top: calc(12px + var(--safe-t)); right: 14px;
   width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
   background: var(--card); border: 1px solid var(--line); color: var(--ink);
   display: grid; place-items: center;
@@ -635,9 +587,12 @@ const CSS = `
   display: flex; align-items: center; justify-content: center; gap: 6px;
 }
 
-@media (min-width: 820px) {
-  .liveBar { left: auto; right: 150px; width: 380px; top: 16px; }
+@media (min-width: 900px) {
+  .liveBar { left: auto; right: 160px; width: 380px; top: 14px; }
 }
+
+/* tap-anywhere confetti canvas */
+.confetti { position: fixed; inset: 0; z-index: 14; pointer-events: none; width: 100%; height: 100%; }
 
 `;
 
@@ -830,36 +785,33 @@ const downloadICS = (e) => {
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 };
 /* ── lib/store.js ─────────────────────────── */
-/* Persistence adapter. Talks to the built-in /api/kv route (a JSON file
-   on the server — perfect for local dev and any Node host). If the API is
-   unreachable (e.g. a static export), it degrades to in-memory so the UI
-   keeps working. Swap the fetch calls for Supabase later without touching
-   any component. */
-const mem = new Map();
+/* Client-side data access. Talks to the app's own API routes, which are
+   backed by MySQL on the server (or a JSON file if no database is
+   configured). Fails soft: if the network is down the UI still works,
+   it just won't persist. */
 
-const store = {
-  async get(key, fallback) {
-    try {
-      const r = await fetch(`/api/kv?key=${encodeURIComponent(key)}`, { cache: "no-store" });
-      if (!r.ok) throw new Error(String(r.status));
-      const j = await r.json();
-      if (j.value === null || j.value === undefined)
-        return mem.has(key) ? mem.get(key) : fallback;
-      return j.value;
-    } catch {
-      return mem.has(key) ? mem.get(key) : fallback;
-    }
-  },
-  async set(key, value) {
-    mem.set(key, value);
-    try {
-      await fetch("/api/kv", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key, value }),
-      });
-    } catch { /* offline / static export — in-memory only */ }
-  },
+async function jsonFetch(url, options) {
+  const r = await fetch(url, { cache: "no-store", ...options });
+  if (!r.ok) throw new Error(String(r.status));
+  return r.json();
+}
+
+const rsvpApi = {
+  summary: () => jsonFetch("/api/rsvp").catch(() => ({ heads: 0, responses: 0 })),
+  submit: (entry) => jsonFetch("/api/rsvp", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(entry),
+  }),
+};
+
+const blessingsApi = {
+  list: () => jsonFetch("/api/blessings").then((d) => d.items || []).catch(() => []),
+  post: (entry) => jsonFetch("/api/blessings", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(entry),
+  }).then((d) => d.items || []),
 };
 /* ── lib/ambience.js ─────────────────────────── */
 /* Ambient soundscape — a synthesized tanpura-ish drone + temple bell,
@@ -1053,9 +1005,13 @@ function makeMandap(gold, bright) {
   return g;
 }
 
-function Stage3D({ prog, theme, reduced, party }) {
+function isCoarse() {
+  return typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
+}
+
+function Stage3D({ progRef, theme, reduced, party }) {
   const hostRef = useRef(null);
-  const pRef = useRef(prog); pRef.current = prog;
+  const pRef = progRef;
   const partyRef = useRef(party); partyRef.current = party;
   const apiRef = useRef(null);
   const [ok, setOk] = useState(true);
@@ -1063,11 +1019,16 @@ function Stage3D({ prog, theme, reduced, party }) {
   useEffect(() => {
     const host = hostRef.current; if (!host) return;
     let R;
-    try { R = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" }); }
+    try { R = new THREE.WebGLRenderer({ antialias: !isCoarse(), alpha: true, powerPreference: "high-performance" }); }
     catch { setOk(false); return; }
 
-    const small = window.innerWidth < 700;
-    R.setPixelRatio(Math.min(window.devicePixelRatio || 1, small ? 1.6 : 2));
+    /* Quality tiers. A phone GPU rendering a full scene at DPR 2 every
+       frame is what made this crawl. Mobile now runs at ~1x resolution,
+       capped to 30fps, with far fewer objects. */
+    const coarse = window.matchMedia("(pointer: coarse)").matches;
+    const small = window.innerWidth < 820 || coarse;
+    const lowPower = small || (navigator.hardwareConcurrency || 8) <= 4;
+    R.setPixelRatio(Math.min(window.devicePixelRatio || 1, lowPower ? 1 : 1.5));
     R.outputEncoding = THREE.sRGBEncoding;
     R.toneMapping = THREE.ACESFilmicToneMapping;
     R.toneMappingExposure = 1.05;
@@ -1240,7 +1201,7 @@ function Stage3D({ prog, theme, reduced, party }) {
 
     /* ── 5 · Ashirwad: a sky of lanterns rising for good ── */
     addZone(5, (g) => {
-      const n = small ? 70 : 120;
+      const n = lowPower ? 26 : 70;
       const geo = new THREE.BufferGeometry();
       const pos = new Float32Array(n * 3), vel = new Float32Array(n);
       for (let i = 0; i < n; i++) {
@@ -1260,7 +1221,7 @@ function Stage3D({ prog, theme, reduced, party }) {
     });
 
     /* ── petals: warm sprites, always BEHIND the panels ── */
-    const PN = small ? 18 : 30;
+    const PN = lowPower ? 8 : 20;
     const petals = [];
     for (let i = 0; i < PN; i++) {
       const sp = new THREE.Sprite(new THREE.SpriteMaterial({
@@ -1281,7 +1242,15 @@ function Stage3D({ prog, theme, reduced, party }) {
       cam.updateProjectionMatrix();
       if (reduced) R.render(scene, cam);
     };
-    const ro = new ResizeObserver(resize); ro.observe(host); resize();
+    let lastW = 0, lastH = 0;
+    const onResize = () => {
+      const w = host.clientWidth, h = host.clientHeight;
+      // ignore the small height changes a mobile address bar causes
+      if (w === lastW && Math.abs(h - lastH) < 120) return;
+      lastW = w; lastH = h; resize();
+    };
+    const ro = new ResizeObserver(onResize); ro.observe(host); resize();
+    lastW = host.clientWidth; lastH = host.clientHeight;
 
     let tx = 0, ty = 0;
     const onMove = (e) => { tx = e.clientX / window.innerWidth - .5; ty = e.clientY / window.innerHeight - .5; };
@@ -1290,10 +1259,8 @@ function Stage3D({ prog, theme, reduced, party }) {
       tx = Math.max(-.6, Math.min(.6, e.gamma / 50));
       ty = Math.max(-.6, Math.min(.6, (e.beta - 45) / 70));
     };
-    if (!reduced) {
-      window.addEventListener("pointermove", onMove, { passive: true });
-      window.addEventListener("deviceorientation", onTilt, { passive: true });
-    }
+    if (!reduced && !coarse) window.addEventListener("pointermove", onMove, { passive: true });
+    if (!reduced && coarse) window.addEventListener("deviceorientation", onTilt, { passive: true });
 
     const PAL = {
       night: { top: 0x080b1e, bot: 0x2a1330, glow: 0x7c1f38, fog: 0x0a0e24, hemi: .75 },
@@ -1305,7 +1272,7 @@ function Stage3D({ prog, theme, reduced, party }) {
     let raf = 0, alive = true, camY = 0;
     const step = () => {
       const dt = Math.min(clock.getDelta(), .05), t = clock.elapsedTime;
-      const p = pRef.current, pt = partyRef.current, sp = pt ? 2.2 : 1;
+      const p = pRef.current || 0, pt = partyRef.current, sp = pt ? 2.2 : 1;
       sky.material.uniforms.uT.value = t * sp;
 
       /* the flight — eased, with a gentle drift so it never feels like
@@ -1370,7 +1337,16 @@ function Stage3D({ prog, theme, reduced, party }) {
       }
       R.render(scene, cam);
     };
-    const loop = () => { if (!alive) return; if (!document.hidden) step(); raf = requestAnimationFrame(loop); };
+    const minDt = lowPower ? 1000 / 30 : 1000 / 60;   // cap the frame rate
+    let lastFrame = 0;
+    const loop = (t) => {
+      if (!alive) return;
+      raf = requestAnimationFrame(loop);
+      if (document.hidden) return;
+      if (t - lastFrame < minDt) return;
+      lastFrame = t;
+      step();
+    };
     if (reduced) step(); else raf = requestAnimationFrame(loop);
 
     apiRef.current = {
@@ -1405,46 +1381,10 @@ function Stage3D({ prog, theme, reduced, party }) {
   return <div ref={hostRef} className="stage3d" aria-hidden="true" />;
 }
 /* ── components/stage/Overlay.jsx ─────────────────────────── */
-/* ═══════════════════════════════════════════════════════════════════
-   The SVG skin over the 3D world. Like the scene below it, none of this
-   unmounts — a single ribbon, a single rangoli and a single garland are
-   drawn once and then continuously re-shaped by scroll progress.
-   ═══════════════════════════════════════════════════════════════════ */
+/* Tap-anywhere confetti. One canvas, fixed to the viewport, idle until
+   something actually bursts — the loop stops itself when no particles
+   remain, so it costs nothing while you're just reading. */
 
-/* A rangoli that never redraws from scratch — it rotates, breathes and
-   swaps petal counts continuously as you travel. */
-function LiveRangoli({ prog, party }) {
-  const petals = 8 + Math.round(prog * 8);
-  const rot = prog * 420 + (party ? 0 : 0);
-  return (
-    <svg className={`liveRangoli ${party ? "party" : ""}`} viewBox="-60 -60 120 120" aria-hidden="true"
-      style={{ transform: `rotate(${rot}deg) scale(${1 + Math.sin(prog * Math.PI) * 0.22})` }}>
-      {Array.from({ length: petals }).map((_, i) => (
-        <ellipse key={i} rx="9" ry="34" cx="0" cy="0"
-          style={{ transform: `rotate(${(360 / petals) * i}deg)`, animationDelay: `${i * 90}ms` }} />
-      ))}
-      <circle r="9" className="rgCore" />
-      <circle r="46" className="rgRim" />
-      <circle r="54" className="rgRim slow" />
-    </svg>
-  );
-}
-
-/* Phrases with their meanings — no wordplay, no invented lines. */
-function PhraseTicker({ prog }) {
-  const i = Math.min(PHRASES.length - 1, Math.floor(prog * PHRASES.length));
-  const ph = PHRASES[i];
-  return (
-    <div className="ticker" key={ph.txt}>
-      <span className={ph.lang === "mr" ? "dev" : "kan"}>{ph.txt}</span>
-      <i>{ph.mean}</i>
-    </div>
-  );
-}
-
-/* Tap/click anywhere → confetti of petals, akshata and sparks.
-   Also fires automatically at each act boundary, so the whole journey
-   keeps popping without the guest doing anything. */
 function Confetti({ reduced, bindRef }) {
   const cRef = useRef(null);
   useEffect(() => {
@@ -1471,7 +1411,8 @@ function Confetti({ reduced, bindRef }) {
           rice: Math.random() < .35,
         });
       }
-      if (parts.length > 700) parts.splice(0, parts.length - 700);
+      if (parts.length > 500) parts.splice(0, parts.length - 500);
+      kick();
     };
     if (bindRef) bindRef.current = burst;
 
@@ -1481,10 +1422,11 @@ function Confetti({ reduced, bindRef }) {
     };
     window.addEventListener("pointerdown", tap, { passive: true });
 
-    let raf = 0, alive = true;
+    let raf = 0, alive = true, running = false;
     const loop = () => {
       if (!alive) return;
       ctx.clearRect(0, 0, W, H);
+      if (!parts.length) { running = false; return; }   // idle → stop burning frames
       for (let i = parts.length - 1; i >= 0; i--) {
         const p = parts[i];
         p.vy += .22; p.vx *= .99; p.vy *= .99;
@@ -1499,7 +1441,7 @@ function Confetti({ reduced, bindRef }) {
       }
       raf = requestAnimationFrame(loop);
     };
-    raf = requestAnimationFrame(loop);
+    const kick = () => { if (!running) { running = true; raf = requestAnimationFrame(loop); } };
     return () => {
       alive = false; cancelAnimationFrame(raf); ro.disconnect();
       window.removeEventListener("pointerdown", tap);
@@ -1510,37 +1452,40 @@ function Confetti({ reduced, bindRef }) {
   return <canvas ref={cRef} className="confetti" aria-hidden="true" />;
 }
 /* ── components/hero/Curtain.jsx ─────────────────────────── */
-function Curtain({ p }) {
-  const open = clamp((p - 0.12) / 0.5, 0, 1);
-  const eased = 1 - Math.pow(1 - open, 3);
-  const textPhase = p < 0.16 ? 0 : p < 0.34 ? 1 : 2;
+/* The antarpat — the signature moment, kept exactly as it was.
+
+   It's driven entirely by a CSS variable (--heroP, 0→1) written by the
+   scroll loop, so parting the curtain costs no React renders at all.
+   The maths that used to run in JS now lives in calc() on the GPU. */
+function Curtain() {
   const EMB = Array.from({ length: 8 }, (_, i) => {
     const x = i * 50 + 8;
     return `M${x} 20 q10 -16 20 0 q-6 6 -10 2 q-4 -4 2 -8 M${x + 30} 18 q5 -8 10 0`;
   }).join(" ");
+  const tassels = Array.from({ length: 9 }).map((_, i) => <i key={i} />);
+
   return (
-    <div className="curtain" aria-hidden="true" style={{ opacity: p > 0.95 ? 0 : 1, transition: "opacity .4s" }}>
-      <div className="cloth L" style={{ transform: `translateX(${-eased * 108}%) rotate(${-eased * 1.6}deg)` }}>
-        <div className="tassels">{Array.from({ length: 9 }).map((_, i) => <i key={i} />)}</div>
-        <svg className="embroid" viewBox="0 0 400 26" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d={EMB} /></svg>
+    <div className="curtain" aria-hidden="true">
+      <div className="cloth L">
+        <div className="tassels">{tassels}</div>
+        <svg className="embroid" viewBox="0 0 400 26" preserveAspectRatio="none"><path pathLength="1" d={EMB} /></svg>
       </div>
-      <div className="cloth R" style={{ transform: `translateX(${eased * 108}%) rotate(${eased * 1.6}deg)` }}>
-        <div className="tassels">{Array.from({ length: 9 }).map((_, i) => <i key={i} />)}</div>
-        <svg className="embroid" viewBox="0 0 400 26" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d={EMB} style={{ animationDelay: ".8s" }} /></svg>
+      <div className="cloth R">
+        <div className="tassels">{tassels}</div>
+        <svg className="embroid" viewBox="0 0 400 26" preserveAspectRatio="none">
+          <path pathLength="1" d={EMB} style={{ animationDelay: ".8s" }} />
+        </svg>
       </div>
-      <div className="clothText" style={{ opacity: 1 - eased * 1.6 }}>
+      <div className="clothText">
         <div>
-          <div className="big display dev">
-            {textPhase < 2 ? "मंगलाष्टकं चालू आहे…" : "शुभमंगल… सावधान!"}
-          </div>
-          <div className="small">{textPhase === 0 ? "Scroll halu halu — 'slowly' in both our languages" : "Keep scrolling · the antarpat is about to drop"}</div>
+          <div className="big display dev phase1">मंगलाष्टकं चालू आहे…</div>
+          <div className="big display dev phase2">शुभमंगल… सावधान!</div>
+          <div className="small">Scroll <span className="dev">हळू हळू</span> — the antarpat is about to drop</div>
         </div>
       </div>
     </div>
   );
 }
-
-/* Countdown — live, with regionally calibrated time units. */
 /* ── components/events/Countdown.jsx ─────────────────────────── */
 function Countdown() {
   const target = new Date(CONFIG.weddingISO).getTime();
@@ -1609,20 +1554,22 @@ function RSVP() {
   const [meal, setMeal] = useState(MEALS[0]);
   const [note, setNote] = useState("");
   const [done, setDone] = useState(null);
-  const [tally, setTally] = useState(87);
+  const [tally, setTally] = useState(0);
+  const [saveErr, setSaveErr] = useState(false);
   const btnRef = useRef(null);
-  useEffect(() => { store.get("ps-rsvp-tally-v1", 87).then((t) => setTally(Number(t) || 87)); }, []);
+  useEffect(() => { rsvpApi.summary().then((d) => setTally(Number(d.heads) || 0)); }, []);
   const submit = async () => {
     if (!vibe || !name.trim()) return;
     const rect = btnRef.current?.getBoundingClientRect();
     if (fx.burst && rect) fx.burst(rect.left + rect.width / 2, rect.top);
     const attending = vibe !== "afar";
-    const newTally = tally + (attending ? count : 0);
-    setTally(newTally); setDone({ name: name.trim(), count, attending });
-    const log = await store.get("ps-rsvp-log-v1", []);
-    log.push({ name: name.trim(), vibe, count, meal, note, ts: Date.now() });
-    await store.set("ps-rsvp-log-v1", log);
-    await store.set("ps-rsvp-tally-v1", newTally);
+    setDone({ name: name.trim(), count, attending });
+    try {
+      const res = await rsvpApi.submit({ name: name.trim(), vibe, count, meal, note });
+      if (typeof res.heads === "number") setTally(res.heads);
+    } catch {
+      setSaveErr(true);           // tell them honestly rather than pretending
+    }
   };
   if (done) return (
     <div className="card confirm">
@@ -1635,7 +1582,12 @@ function RSVP() {
           ? `${done.name}, you + ${done.count - 1 || "no"} more = counted, fed, and expected on the dance floor.`
           : `${done.name}, we'll miss you badly — we'll send you the photos.`}
       </p>
-      <p className="meter"><b>{tally}+</b> have already said they're coming</p>
+      {tally > 0 && <p className="meter"><b>{tally}</b> already coming</p>}
+      {saveErr && (
+        <p className="meter" style={{ color: "var(--rose)" }}>
+          We couldn't reach the server — please call {CONFIG.contact.replace("RSVP · ", "")} so we don't miss you.
+        </p>
+      )}
     </div>
   );
   return (
@@ -1701,10 +1653,7 @@ function BlessingsWall() {
   const [msg, setMsg] = useState("");
   const [sent, setSent] = useState(false);
   useEffect(() => {
-    store.get("ps-blessings-v1", []).then((saved) => {
-      const live = (Array.isArray(saved) ? saved : []).filter((b) => !b.hidden);
-      setItems([...live, ...SEED_BLESSINGS]);
-    });
+    blessingsApi.list().then((live) => setItems([...live, ...SEED_BLESSINGS]));
   }, []);
   const addEmoji = (e) => setMsg((m) => (m + " " + e).trim().slice(0, 160));
   const post = async () => {
@@ -1716,12 +1665,13 @@ function BlessingsWall() {
       c: (Math.random() * 4) | 0,
       ts: Date.now(),
     };
-    const next = [entry, ...items];
-    setItems(next); setMsg(""); setSent(true);
+    setItems([entry, ...items]); setMsg(""); setSent(true);
     setTimeout(() => setSent(false), 2500);
     if (fx.burst) fx.burst(window.innerWidth / 2, window.innerHeight * 0.35);
-    const saved = await store.get("ps-blessings-v1", []);
-    await store.set("ps-blessings-v1", [entry, ...(Array.isArray(saved) ? saved : [])].slice(0, 120));
+    try {
+      const live = await blessingsApi.post(entry);
+      if (live.length) setItems([...live, ...SEED_BLESSINGS]);
+    } catch { /* keep it on screen even if the save failed */ }
   };
   const tints = [
     "linear-gradient(150deg, rgba(227,179,65,.14), transparent)",
@@ -1950,107 +1900,65 @@ function LiveCeremony({ burstRef, reduced }) {
 }
 /* ── components/Invitation.jsx ─────────────────────────── */
 /* ═══════════════════════════════════════════════════════════════════
-   THE FLIGHT
-   The page is a single fixed viewport. Scrolling doesn't move content
-   past you — it moves *time* forward. One global progress value (0→1)
-   drives the 3D world, the SVG ribbon, the rangoli, the colours and
-   which act is on screen. Nothing is stitched; it's one continuous take.
+   Why this is an ordinary scrolling page.
+
+   Earlier versions pinned everything into a fixed viewport and scrolled
+   content inside boxes. That created three problems that can't be
+   patched away: inner scrollers fight the page, content gets clipped,
+   and every scroll frame re-rendered the whole React tree.
+
+   Now the 3D world is a fixed backdrop and the invitation is a normal
+   document. Scrolling is the browser's own — smooth on any phone,
+   nothing to trap, nothing to clip.
+
+   Scroll progress goes into a ref and a CSS variable inside one rAF
+   loop. React state changes only when the act changes — six times in
+   the entire journey — so scrolling triggers no re-renders.
    ═══════════════════════════════════════════════════════════════════ */
 
-const N = ACTS.length;
-const smooth = (t) => t * t * (3 - 2 * t);
-
-/* local 0→1 within an act, and how "present" that act is */
-function actState(prog, i) {
-  const band = 1 / N;
-  const local = clamp((prog - i * band) / band, 0, 1);
-  const inFade = smooth(clamp(local / 0.2, 0, 1));
-  const outFade = 1 - smooth(clamp((local - 0.78) / 0.22, 0, 1));
-  return { local, vis: Math.min(inFade, outFade) };
-}
-
-
-/* Scrollable content area.
-   Two rules make this behave:
-     1. It scrolls natively — real momentum on touch, real wheel response.
-     2. overscroll-behavior stays AUTO, so when you hit the bottom the
-        scroll chains straight on to the page and the journey continues.
-        (The earlier bug was `contain`, which swallowed the wheel and
-        froze the page — never set that here.)
-   A chevron appears while there's more to read below. */
-function ActFlow({ children }) {
-  const ref = useRef(null);
-  const [more, setMore] = useState(false);
-
-  const check = useCallback(() => {
-    const el = ref.current; if (!el) return;
-    setMore(el.scrollHeight - el.clientHeight - el.scrollTop > 12);
-  }, []);
-
-  useEffect(() => {
-    const el = ref.current; if (!el) return;
-    check();
-    const ro = new ResizeObserver(check);
-    ro.observe(el);
-    if (el.firstElementChild) ro.observe(el.firstElementChild);
-    const t = setTimeout(check, 500);
-    return () => { ro.disconnect(); clearTimeout(t); };
-  }, [check]);
-
-  return (
-    <div className="flowWrap">
-      <div className="flow" ref={ref} onScroll={check} tabIndex={0}>
-        <div className="flowInner">{children}</div>
-      </div>
-      <span className={`flowMore ${more ? "on" : ""}`} aria-hidden="true">
-        <ChevronDown size={16} />
-      </span>
-    </div>
-  );
-}
-
-function Panel({ i, prog, children, className = "" }) {
-  const { local, vis } = actState(prog, i);
-  if (vis <= 0.001) return null;                     // cheap, but never remounts the world
-  return (
-    <div className={`panel ${className}`} style={{
-      opacity: vis,
-      transform: `translate3d(0, ${(1 - vis) * 26}px, 0) scale(${0.965 + vis * 0.035})`,
-      pointerEvents: vis > 0.55 ? "auto" : "none",
-      filter: `blur(${(1 - vis) * 5}px)`,
-      "--local": local,
-    }}>
-      <div className="glass">{children}</div>
-    </div>
-  );
-}
-
 function Invitation() {
-  const [prog, setProg] = useState(0);
   const [theme, setTheme] = useState("night");
   const [party, setParty] = useState(false);
   const [sound, setSound] = useState(false);
   const [reduced, setReduced] = useState(false);
+  const [act, setAct] = useState(0);
   const [pin, setPin] = useState(PINS[0]?.id);
+
+  const progRef = useRef(0);
+  const rootRef = useRef(null);
   const burstRef = useRef(null);
   const ambRef = useRef(null);
-  const lastAct = useRef(-1);
+  const actRef = useRef(0);
 
   useEffect(() => {
     setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   }, []);
 
-  /* the single source of truth */
   useEffect(() => {
-    let raf = 0;
+    let raf = 0, queued = false;
     const read = () => {
-      raf = 0;
+      queued = false;
       const max = document.documentElement.scrollHeight - window.innerHeight;
-      setProg(max > 0 ? clamp(window.scrollY / max, 0, 1) : 0);
+      const p = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+      progRef.current = p;
+
+      const el = rootRef.current;
+      if (el) {
+        el.style.setProperty("--prog", p.toFixed(4));
+        const heroP = Math.min(1, window.scrollY / (window.innerHeight * 1.1));
+        el.style.setProperty("--heroP", heroP.toFixed(4));
+      }
+
+      const i = Math.min(ACTS.length - 1, Math.floor(p * ACTS.length * 0.999));
+      if (i !== actRef.current) { actRef.current = i; setAct(i); }
     };
-    const onScroll = () => { if (!raf) raf = requestAnimationFrame(read); };
+    const onScroll = () => {
+      if (queued) return;
+      queued = true;
+      raf = requestAnimationFrame(read);
+    };
     window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
+    window.addEventListener("resize", onScroll, { passive: true });
     read();
     return () => {
       window.removeEventListener("scroll", onScroll);
@@ -2059,18 +1967,6 @@ function Invitation() {
     };
   }, []);
 
-  const act = Math.min(N - 1, Math.floor(prog * N));
-
-  /* every act boundary pops — the journey keeps celebrating itself */
-  useEffect(() => {
-    if (act !== lastAct.current) {
-      if (lastAct.current !== -1 && burstRef.current && !reduced) {
-        burstRef.current(window.innerWidth / 2, window.innerHeight * 0.42, 40);
-      }
-      lastAct.current = act;
-    }
-  }, [act, reduced]);
-
   useEffect(() => () => ambRef.current?.stop(), []);
   const toggleSound = () => {
     if (!ambRef.current) ambRef.current = new Ambience();
@@ -2078,208 +1974,189 @@ function Invitation() {
     else { ambRef.current.start(); setSound(true); }
   };
 
-  const goAct = useCallback((i) => {
-    const max = document.documentElement.scrollHeight - window.innerHeight;
-    window.scrollTo({ top: max * ((i + 0.35) / N), behavior: reduced ? "auto" : "smooth" });
+  const goto = useCallback((id) => {
+    document.getElementById(`act-${id}`)?.scrollIntoView({
+      behavior: reduced ? "auto" : "smooth", block: "start",
+    });
   }, [reduced]);
 
-  const heroP = clamp(prog * N * 1.55, 0, 1);   // curtain parts through act 0
-  const nameIn = clamp((heroP - 0.42) / 0.35, 0, 1);
-
   return (
-    <>
-      {/* scroll distance only — the entire experience is fixed above it */}
-      <div className="scroller" style={{ height: `${N * 118}dvh` }} aria-hidden="true" />
+    <div ref={rootRef} className={`root ${party ? "party" : ""}`} data-theme={theme}>
+      <div className="bg">
+        <Stage3D progRef={progRef} theme={theme} reduced={reduced} party={party} />
+      </div>
+      <Confetti reduced={reduced} bindRef={burstRef} />
+      <LiveCeremony burstRef={burstRef} reduced={reduced} />
 
-      <main className={`viewport grain ${party ? "party" : ""}`} data-theme={theme}>
-        <Stage3D prog={prog} theme={theme} reduced={reduced} party={party} />
-        <LiveRangoli prog={prog} party={party} />
-        <Confetti reduced={reduced} bindRef={burstRef} />
-        <LiveCeremony burstRef={burstRef} reduced={reduced} />
+      <header className="chrome">
+        <span className="mono">A <Heart size={12} /> S</span>
+        <div className="chromeBtns">
+          <button className={`ic ${party ? "on" : ""}`} onClick={() => setParty(p => !p)}
+            aria-pressed={party} aria-label="Party mode"><PartyPopper size={16} /></button>
+          <button className="ic" onClick={toggleSound} aria-pressed={sound} aria-label="Ambient sound">
+            {sound ? <Music size={16} /> : <VolumeX size={16} />}
+          </button>
+          <button className="ic" onClick={() => setTheme(t => t === "night" ? "day" : "night")}
+            aria-label="Switch theme">{theme === "night" ? <Sun size={16} /> : <Moon size={16} />}</button>
+        </div>
+      </header>
 
-        {/* ── chrome ─────────────────────────────────────────── */}
-        <header className="chrome">
-          <span className="mono" aria-label="Akshay and Shraddha">A <Heart size={12} /> S</span>
-          <div className="chromeBtns">
-            <button className={`ic ${party ? "on" : ""}`} onClick={() => setParty(p => !p)}
-              aria-pressed={party} aria-label="Party mode">
-              <PartyPopper size={16} />
-            </button>
-            <button className="ic" onClick={toggleSound} aria-pressed={sound} aria-label="Ambient sound">
-              {sound ? <Music size={16} /> : <VolumeX size={16} />}
-            </button>
-            <button className="ic" onClick={() => setTheme(t => t === "night" ? "day" : "night")}
-              aria-label="Theme">{theme === "night" ? <Sun size={16} /> : <Moon size={16} />}</button>
-          </div>
-        </header>
+      <span className="progressBar" aria-hidden="true" />
 
-        {/* act rail — doubles as the progress indicator */}
-        <nav className="rail" aria-label="Chapters">
-          {ACTS.map((a, i) => (
-            <button key={a.id} className={`railDot ${i === act ? "on" : ""}`}
-              onClick={() => goAct(i)} aria-label={`${a.label} — ${a.sub}`}>
-              <b>{a.label}</b>
-            </button>
-          ))}
-          <span className="railFill" style={{ transform: `scaleY(${prog})` }} aria-hidden="true" />
-        </nav>
-
-        <PhraseTicker prog={prog} />
-
-        {/* ── ACT 0 · Antarpat ───────────────────────────────── */}
-        <Panel i={0} prog={prog} className="center">
+      {/* ── ONE · the antarpat ──────────────────────────────── */}
+      <section className="act hero" id="act-antarpat">
+        <Curtain />
+        <div className="heroInner">
           <p className="invok dev">॥ श्री वीतरागाय नमः ॥ · ॥ श्री गणेशाय नमः ॥</p>
 
-          <div className="couple" style={{ opacity: nameIn }}>
+          <div className="couple">
             <div className="side">
-              <h1 className="one display shimmer">{CONFIG.groom.en}</h1>
+              <h1 className="one display">{CONFIG.groom.en}</h1>
               <p className="dev oneDev">{CONFIG.groom.dev}</p>
               <p className="fam">{CONFIG.groom.parents}</p>
               <p className="fam dim">{CONFIG.groom.siblings}</p>
             </div>
 
-            <div className="weds" aria-hidden="true">
-              <span className="wline" /><em className="display">weds</em><span className="wline" />
-            </div>
+            <div className="weds"><span className="wline" /><em className="display">weds</em><span className="wline" /></div>
 
             <div className="side">
-              <h1 className="one display shimmer">{CONFIG.bride.en}</h1>
+              <h1 className="one display">{CONFIG.bride.en}</h1>
               <p className="dev oneDev">{CONFIG.bride.dev}</p>
               <p className="fam">{CONFIG.bride.parents}</p>
-              {CONFIG.bride.siblings && <p className="fam dim">{CONFIG.bride.siblings}</p>}
             </div>
           </div>
 
-          <div className="bigDate display" style={{ opacity: nameIn }}>09 · 08 · 2026</div>
-          <p className="muhurt" style={{ opacity: nameIn }}>Sunday · {CONFIG.muhurtLabel}</p>
-          <p className="venueLine" style={{ opacity: nameIn }}>
-            {CONFIG.venue.name} · {CONFIG.city}
-          </p>
+          <div className="bigDate display">09 · 08 · 2026</div>
+          <p className="muhurt">Sunday · {CONFIG.muhurtLabel}</p>
+          <p className="venueLine">{CONFIG.venue.name} · {CONFIG.city}</p>
 
-          <div className="cta" style={{ opacity: nameIn, pointerEvents: nameIn > .5 ? "auto" : "none" }}>
+          <div className="cta">
             <button className="btn solid" onClick={() => downloadICS(EVENTS[1])}>
               <CalendarPlus size={15} /> Save the date
             </button>
+            <a className="btn" href={CONFIG.venue.maps} target="_blank" rel="noopener noreferrer">
+              <MapPin size={15} /> Venue
+            </a>
           </div>
-        </Panel>
+        </div>
 
-        {/* ── ACT 1 · Parivar ───────────────────────────────── */}
-        <Panel i={1} prog={prog}>
-          <p className="eyebrow"><Users size={11} /> Act Two · Parivar</p>
-          <h2 className="h2 display">Two families, <span className="shimmer">one day</span></h2>
-          <ActFlow>
-            <div className="famCard">
-              <span className="famTag">Groom's side</span>
-              <h3 className="display">{CONFIG.groom.family}</h3>
-              <p>{CONFIG.groom.parents}</p>
-              <p className="dim">{CONFIG.groom.siblings}</p>
+        <button className="cue" onClick={() => goto("parivar")} aria-label="Scroll down">
+          <span className="dev">हळू हळू</span><i>scroll slowly</i><ChevronDown size={16} />
+        </button>
+      </section>
+
+      {/* ── TWO · families ──────────────────────────────────── */}
+      <section className="act" id="act-parivar">
+        <p className="eyebrow"><Users size={11} /> Two · Parivar</p>
+        <h2 className="h2 display">Two families, one day</h2>
+
+        <div className="famCard">
+          <span className="famTag">Groom's side</span>
+          <h3 className="display">{CONFIG.groom.family}</h3>
+          <p>{CONFIG.groom.parents}</p>
+          <p className="dim">{CONFIG.groom.siblings}</p>
+        </div>
+        <div className="famCard">
+          <span className="famTag">Bride's side</span>
+          <h3 className="display">{CONFIG.bride.family}</h3>
+          <p>{CONFIG.bride.parents}</p>
+        </div>
+        <p className="famJoin">{CONFIG.familiesLine}</p>
+
+        <div className="giftCard">
+          <Gift size={20} />
+          <h3 className="display">{CONFIG.giftNote}</h3>
+          <p>{CONFIG.giftSub}</p>
+        </div>
+
+        <p className="ritualLead">The rituals of the day</p>
+        <div className="chips">{RITUAL_CHIPS.map(c => <span className="chip" key={c}>✦ {c}</span>)}</div>
+      </section>
+
+      {/* ── THREE · the day ─────────────────────────────────── */}
+      <section className="act" id="act-muhurat">
+        <p className="eyebrow"><Clock size={11} /> Three · Muhurat</p>
+        <h2 className="h2 display">One day. Everything that matters.</h2>
+        <Countdown />
+        {EVENTS.map((e) => (
+          <article className="ev" key={e.id}>
+            <span className="evEmoji" aria-hidden="true">{e.emoji}</span>
+            <div className="evBody">
+              <h3 className="display">{e.title}</h3>
+              <span className="tag">{e.tag}</span>
+              <p className="meta">{e.place}</p>
+              <p className="dress"><b>Dress:</b> {e.dress}</p>
+              <div className="evBtns">
+                <a className="btn sm" href={gcalUrl(e)} target="_blank" rel="noopener noreferrer">
+                  <CalendarPlus size={13} /> Google
+                </a>
+                <button className="btn sm" onClick={() => downloadICS(e)}>
+                  <Download size={13} /> .ics
+                </button>
+              </div>
             </div>
-            <div className="famCard">
-              <span className="famTag">Bride's side</span>
-              <h3 className="display">{CONFIG.bride.family}</h3>
-              <p>{CONFIG.bride.parents}</p>
-            </div>
-            <p className="famJoin">{CONFIG.familiesLine}</p>
+          </article>
+        ))}
+      </section>
 
-            <div className="giftCard">
-              <Gift size={20} />
-              <h3 className="display">{CONFIG.giftNote}</h3>
-              <p>{CONFIG.giftSub}</p>
-            </div>
+      {/* ── FOUR · getting there ────────────────────────────── */}
+      <section className="act" id="act-rasta">
+        <p className="eyebrow"><MapPin size={11} /> Four · Rasta</p>
+        <h2 className="h2 display">Finding the mandap</h2>
 
-            <p className="ritualLead">The rituals of the day</p>
-            <div className="chips">{RITUAL_CHIPS.map(c => <span className="chip" key={c}>✦ {c}</span>)}</div>
-          </ActFlow>
-        </Panel>
-
-        {/* ── ACT 2 · Muhurat ────────────────────────────────── */}
-        <Panel i={2} prog={prog}>
-          <p className="eyebrow"><Clock size={11} /> Act Three · Muhurat</p>
-          <h2 className="h2 display">One day. <span className="shimmer">Everything that matters.</span></h2>
-          <Countdown />
-          <ActFlow>
-            {EVENTS.map((e, i) => (
-              <article className="ev" key={e.id} style={{ animationDelay: `${i * 60}ms` }}>
-                <span className="evEmoji" aria-hidden="true">{e.emoji}</span>
-                <div className="evBody">
-                  <h3 className="display">{e.title}</h3>
-                  <span className="tag">{e.tag}</span>
-                  <p className="meta">{e.place}</p>
-                  <p className="dress"><b>Dress:</b> {e.dress}</p>
-                  <div className="evBtns">
-                    <a className="btn ghost" href={gcalUrl(e)} target="_blank" rel="noopener noreferrer">
-                      <CalendarPlus size={13} /> Google
-                    </a>
-                    <button className="btn ghost" onClick={() => downloadICS(e)}>
-                      <Download size={13} /> .ics
-                    </button>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </ActFlow>
-        </Panel>
-
-        {/* ── ACT 3 · Rasta ──────────────────────────────────── */}
-        <Panel i={3} prog={prog}>
-          <p className="eyebrow"><MapPin size={11} /> Act Four · Rasta</p>
-          <h2 className="h2 display">Finding <span className="shimmer">the mandap</span></h2>
-          <div className="pinRow">
-            {PINS.map(p => (
-              <button key={p.id} className={`pinChip ${pin === p.id ? "on" : ""}`} onClick={() => setPin(p.id)}>
-                {p.label}
-              </button>
-            ))}
-          </div>
-          {PINS.filter(p => p.id === pin).map(p => (
-            <div className="pinCard" key={p.id}>
-              <h3 className="display">{p.label}</h3>
-              <p className="meta">{p.km}</p>
-              {p.note && <p>{p.note}</p>}
-              <a className="btn ghost" href={p.id === "venue" ? CONFIG.venue.maps : `https://maps.google.com/?q=${encodeURIComponent(p.q)}`}
-                target="_blank" rel="noopener noreferrer"><MapPin size={13} /> Open in Maps</a>
-            </div>
+        <div className="pinRow">
+          {PINS.map(p => (
+            <button key={p.id} className={`pinChip ${pin === p.id ? "on" : ""}`}
+              onClick={() => setPin(p.id)}>{p.label}</button>
           ))}
-          <ActFlow>
-            <GuideTabs />
-            <p className="note"><Umbrella size={12} /> August in this belt means sudden rain — umbrella in the bag.</p>
-            <p className="note"><Gift size={12} /> {CONFIG.giftSub}</p>
-          </ActFlow>
-        </Panel>
-
-        {/* ── ACT 4 · Yeta ka? ───────────────────────────────── */}
-        <Panel i={4} prog={prog}>
-          <p className="eyebrow"><Sparkles size={11} /> Act Five · येता का मग?</p>
-          <h2 className="h2 display">So… <span className="shimmer">you're coming?</span></h2>
-          <ActFlow><RSVP /></ActFlow>
-        </Panel>
-
-        {/* ── ACT 5 · Ashirwad ───────────────────────────────── */}
-        <Panel i={5} prog={prog}>
-          <p className="eyebrow"><Heart size={11} /> Act Six · Ashirwad</p>
-          <h2 className="h2 display">Leave a <span className="shimmer">blessing</span></h2>
-          <ActFlow>
-            <BlessingsWall />
-            <footer className="foot">
-              <p className="display shimmer">{CONFIG.hashtag}</p>
-              <p>{CONFIG.familiesLine}</p>
-              <p className="dev">स्वर्गीय आशीर्वाद 🪔 {CONFIG.remembrance.join(" · ")}</p>
-              <p className="giftFoot">{CONFIG.giftNote}</p>
-              <p>{CONFIG.contact}</p>
-            </footer>
-          </ActFlow>
-        </Panel>
-
-        {/* the curtain stays — it's the one thing that opens onto everything */}
-        <Curtain p={heroP} />
-
-        {prog < 0.02 && (
-          <div className="cue">
-            <span className="dev">हळू हळू</span><i>scroll slowly</i><ChevronDown size={15} />
+        </div>
+        {PINS.filter(p => p.id === pin).map(p => (
+          <div className="pinCard" key={p.id}>
+            <h3 className="display">{p.label}</h3>
+            <p className="meta">{p.km}</p>
+            {p.note && <p>{p.note}</p>}
+            <a className="btn sm" href={p.id === "venue" ? CONFIG.venue.maps : `https://maps.google.com/?q=${encodeURIComponent(p.q)}`}
+              target="_blank" rel="noopener noreferrer"><MapPin size={13} /> Open in Maps</a>
           </div>
-        )}
-      </main>
-    </>
+        ))}
+
+        <GuideTabs />
+        <p className="note"><Umbrella size={12} /> August in this belt means sudden rain — umbrella in the bag.</p>
+        <p className="note"><Gift size={12} /> {CONFIG.giftSub}</p>
+      </section>
+
+      {/* ── FIVE · rsvp ─────────────────────────────────────── */}
+      <section className="act" id="act-yeta">
+        <p className="eyebrow"><Sparkles size={11} /> Five · येता का मग?</p>
+        <h2 className="h2 display">So… you're coming?</h2>
+        <RSVP />
+      </section>
+
+      {/* ── SIX · blessings ─────────────────────────────────── */}
+      <section className="act" id="act-ashirwad">
+        <p className="eyebrow"><Heart size={11} /> Six · Ashirwad</p>
+        <h2 className="h2 display">Leave a blessing</h2>
+        <BlessingsWall />
+
+        <footer className="foot">
+          <p className="display">{CONFIG.hashtag}</p>
+          <p>{CONFIG.familiesLine}</p>
+          <p className="dev">स्वर्गीय आशीर्वाद 🪔 {CONFIG.remembrance.join(" · ")}</p>
+          <p className="giftFoot">{CONFIG.giftNote}</p>
+          <p>{CONFIG.contact}</p>
+        </footer>
+      </section>
+
+      {/* a jump list — never a scroll mechanism */}
+      <nav className="rail" aria-label="Sections">
+        {ACTS.map((a, i) => (
+          <button key={a.id} className={`railDot ${i === act ? "on" : ""}`}
+            onClick={() => goto(a.id)} aria-label={`${a.label} — ${a.sub}`}>
+            <b>{a.label}</b>
+          </button>
+        ))}
+      </nav>
+    </div>
   );
 }
 

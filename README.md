@@ -29,7 +29,7 @@ Visit **`/admin`** on your site. Default login `admin` / `admin123` — **change
 
 It shows a live headcount, the split of who's coming vs. not, and a **kitchen count** of Jain vs. regular-veg meals counted by heads and excluding non-attendees — that's the number for the caterer. There's a full RSVP table with each guest's note, blessings moderation (hide/restore), and **Download CSV** for both.
 
-Everything lives in one JSON file. Set `DATA_DIR` in Hostinger to keep it outside the deploy folder — see DEPLOY-HOSTINGER.md.
+Data lives in **MySQL** when the `DB_*` environment variables are set (Hostinger — see DEPLOY-HOSTINGER.md), and in a local JSON file otherwise. The app creates its own tables; there's no SQL to run. The dashboard states which backend is live.
 
 ## The live muhurat
 

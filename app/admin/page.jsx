@@ -158,7 +158,7 @@ export default function Admin() {
         </section>
       )}
 
-      {tab === "settings" && <Settings user={session.user} onDone={loadSession} />}
+      {tab === "settings" && <Settings user={session.user} onDone={loadSession} backend={data?.backend} />}
     </main>
   );
 }
@@ -207,7 +207,7 @@ function Login({ onDone }) {
   );
 }
 
-function Settings({ user, onDone }) {
+function Settings({ user, onDone, backend }) {
   const [cur, setCur] = useState("");
   const [next, setNext] = useState("");
   const [msg, setMsg] = useState(null);
@@ -253,10 +253,21 @@ function Settings({ user, onDone }) {
 
       <section className="adCard">
         <h2>Where your data lives</h2>
-        <p className="adMuted">
-          Everything — RSVPs, blessings and the akshata count — is stored in
-          <code> data/kv.json </code> on your server. Back it up by downloading the CSVs above,
-          or by copying that one file. Deleting it resets everything.
+        {backend?.backend === "mysql" ? (
+          <p className={backend.ok ? "adOk" : "adErr"}>
+            {backend.ok
+              ? `Connected to MySQL — ${backend.detail}`
+              : `MySQL configured but NOT reachable (${backend.detail}). Check the DB_* variables.`}
+          </p>
+        ) : (
+          <p className="adMuted">
+            Using the local JSON file (<code>{backend?.detail || "data/kv.json"}</code>).
+            Set the <code>DB_*</code> environment variables to switch to MySQL — see
+            DEPLOY-HOSTINGER.md.
+          </p>
+        )}
+        <p className="adMuted small">
+          Back it up with the CSV downloads above, or from phpMyAdmin → Export.
         </p>
       </section>
     </>
