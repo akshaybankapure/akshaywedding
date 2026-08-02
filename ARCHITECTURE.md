@@ -77,6 +77,25 @@ The scene is wired into the same systems as everything else: `FogExp2` recolours
 
 **v2 effects pack.** The hero scene now also runs a jewel-tone value-noise ShaderMaterial "silk nebula" quad behind everything, a counter-rotating chakra halo (three additive tori) plus a breathing aura sprite behind the kalash, two catenary marigold **toran** garland strands (tube + three InstancedMeshes each), rising akash-kandil sky lanterns, and an ember Points system — and the RSVP rings gained an orbiting sparkle ring. On the DOM side: self-drawing rangoli SVG chapter dividers and embroidered curtain stitching (`pathLength`/dashoffset draw-on), a story vine that grows with scroll progress, SMIL `animateMotion` travellers on the map (an auto-rickshaw shuttling the Kolhapur↔Belagavi road and two monsoon birds, rendered statically under reduced motion), letter-staggered shimmer names (`background-clip: text`), conic-gradient sheen borders via `@property --ang`, pointer-tilt event cards with a tracked glare, a cursor glow on `mix-blend-mode: screen`, and a bilingual phrase marquee. Every effect obeys the same budgets as before: reduced-motion collapse, offscreen pause, capped DPR, and lower particle counts on phones.
 
+
+## Art direction rules for the 3D layer
+
+Four rules keep the scene reading as design rather than programmer art, and they should survive any future edit:
+
+1. **Nothing renders in front of the text.** Every object sits at z ≤ -4; the glass panels own the foreground. Petals used to drift between the camera and the copy, which made them read as grey blobs over the type — they now live behind everything.
+2. **No solid primitives pretending to be objects.** A box with two torus wheels does not read as a rickshaw; it reads as a mistake. Props are either elegant surfaces of revolution (kalash, pillars, rings), catenary swags (toran, canopy drapes), layered paper-cut silhouettes (the ridge lines in the Rasta zone), or pure light (lantern boats, memory orbs). If a shape can't be made beautiful in code, it becomes light instead.
+3. **Everything warm is emissive.** Any object relying purely on a light hitting it will eventually render flat grey when the camera moves. Emissive materials plus additive glow sprites mean the palette holds from every angle.
+4. **The camera frames; it never flies through.** Each zone is composed at a fixed standoff (camera z ≈ 7.2, geometry at z ≈ -6 to -20) with a slow drift. The earlier version put the camera inside the hills, which is why everything looked like flat coloured triangles at point-blank range.
+
+Lighting is a warm key, a cool rim, and a hemisphere fill so nothing is ever unlit. Fog is linear (16→46) so distant zones dissolve instead of popping. `lib/models.js` is the drop-in slot for real CC0 miniatures (Poly Haven, Quaternius, Kenney, ambientCG) plus HDRI environment loading — the fastest single upgrade is one 1K HDRI as `scene.environment`, which gives the brass real reflections.
+
+
+## Two failure modes worth never repeating
+
+**Never nest a scroll container inside a scroll-driven page.** An inner `overflow-y: auto` with `overscroll-behavior: contain` silently eats the wheel: the guest scrolls over the middle of the screen, the page freezes, and they have to find the margins to continue. Long content is now handled by `ActFlow`, which measures its overflow and translates it upward in step with the act's local progress — the page scroll is the only scroll, and the content still moves.
+
+**Keep the token block intact when generating the single-file build.** The artifact is generated from these sources by stripping imports and swapping font declarations. An over-greedy regex once deleted the whole `:root {}` block instead of just its four font lines, which took every colour token with it — `--ink`, `--gold`, `--glass` — so text fell back to browser-default black on a dark background and the entire invite rendered nearly invisible. The generator now replaces the font lines individually and asserts that `--ink`, `--glass` and `--gold` are still present before writing.
+
 ## Data and integrations
 
 **Calendar** needs no backend: `gcalUrl()` builds a `calendar.google.com/render` link with `ctz=Asia/Kolkata`, and `downloadICS()` generates an RFC-5545 VEVENT (IST converted to UTC stamps) as a Blob — this covers Apple/Outlook. Both already work in the demo.

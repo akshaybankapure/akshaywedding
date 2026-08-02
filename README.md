@@ -1,6 +1,6 @@
 # Akshay ♥ Shraddha — 09.08.2026
 
-A scroll-driven digital wedding invitation for the Bankapure × Sangave families — Belagavi × Kolhapur, Digambar Jain × Maharashtrian, Apple-polish × aaji-approved humor. Built with Next.js (App Router), a hand-rolled CSS design system, a canvas petal/akshata engine, and a procedural Three.js layer (brass kalash, floating diyas, 3D marigolds — zero external 3D assets, so nothing needs a license check).
+A single continuous scroll-flight digital wedding invitation for the Bankapure × Sangave families — Belagavi × Kolhapur, Digambar Jain × Maharashtrian, Apple-polish × aaji-approved humor. Built with Next.js (App Router), a hand-rolled CSS design system, a canvas petal/akshata engine, and a procedural Three.js layer (brass kalash, floating diyas, 3D marigolds — zero external 3D assets, so nothing needs a license check).
 
 ## Quickstart
 
@@ -11,18 +11,44 @@ npm run dev       # http://localhost:3000
 
 `npm run build && npm start` for production on any Node ≥ 18.17 host.
 
+
+## How it works (v3 — one continuous flight)
+
+The page is **one fixed viewport**. A tall empty `.scroller` div supplies scroll distance, and a single global progress value (0→1) drives everything: the camera flying down the 3D world, the SVG ribbon drawing itself, the rangoli morphing, the palette shifting and which act is on screen. Nothing mounts or unmounts as you scroll, so there are no section seams anywhere — it's one take from the antarpat to the blessings.
+
+`components/stage/Stage3D.jsx` builds the entire world at once, stacked down the Y axis: the kalash and halo at the top, a spiral of memory orbs, a ring of event lanterns, the valley with a rickshaw driving a real curve, the mandap with its rings, and the blessing sky. The camera flies a gentle S-curve through all of it. `components/stage/Overlay.jsx` is the SVG skin (ribbon, live rangoli, phrase ticker, tap-anywhere confetti). `components/Invitation.jsx` is the orchestrator.
+
+**Phone-first:** every size is authored for a 380px viewport, the 3D lens widens on narrow aspect ratios, device tilt drives parallax, all touch targets are ≥44px, inputs are 16px so iOS never zooms, and safe-area insets are respected. Desktop only moves the act rail to the side and adds breathing room.
+
+**Language:** all Marathi/Kannada phrases live in `PHRASES` in `lib/config.js` and are always shown with their English meaning.
+
+
+## Admin dashboard — where the RSVPs go
+
+Visit **`/admin`** on your site. Default login `admin` / `admin123` — **change it in Settings on first login** (the dashboard warns you until you do; passwords are stored as scrypt hashes, never plain text, and changing one signs out every other device).
+
+It shows a live headcount, the split of who's coming vs. not, and a **kitchen count** of Jain vs. regular-veg meals counted by heads and excluding non-attendees — that's the number for the caterer. There's a full RSVP table with each guest's note, blessings moderation (hide/restore), and **Download CSV** for both.
+
+Everything lives in one JSON file. Set `DATA_DIR` in Hostinger to keep it outside the deploy folder — see DEPLOY-HOSTINGER.md.
+
+## The live muhurat
+
+On 09.08.2026 the invitation changes by itself. Thirty minutes before the muhurat a quiet banner appears for anyone who opens the link; at the muhurat it becomes a full-screen ceremony where guests who couldn't travel throw akshata by tapping. Their taps join a **shared live count** across every remote guest, with petals and akshata bursting on screen and a haptic tap on phones. Thirty minutes later it closes gracefully and the blessings wall stays open.
+
+Test it any time with **`/?rehearsal=1`** — that runs the whole ceremony immediately.
+
 ## Edit your details
 
 Everything content-ish lives in **`lib/config.js`** — names (Latin/Devanagari/Kannada), parents, siblings, the family roll-call, all six events, story beats, map pins, the local guide, RSVP options and seed blessings. The hero, calendar links, .ics files, footer and monogram all read from it.
 
-Open TODOs (marked with ✏️ in the file):
+Open TODOs (marked with ✏️ in `lib/config.js`):
 
-1. **Shraddha's aai** — append her name to `bride.parents` and add the "कै. सौ. …" entry to the `remembrance` array (template is in the comment). Honorific is set as *Smt.*
-2. **Muhurat** — `weddingISO` + `muhurtLabel` currently 11:47 AM placeholder.
-3. **Venue** — name, address line and `mapsQuery` (drives the "Open in Maps" links).
-4. **RSVP helpline** — real number (Nishchay is currently the drafted "unofficial event manager").
-5. **Story beats** — the five `STORY` items and their sweet/spice caption pairs are templates for your real katha.
-6. **Tirth vs Teerth** — standardized to *Tirth*; flip in `siblings` + `familiesLine` if needed.
+1. **Shraddha's aai** — append her name to `bride.parents` and add the "कै. सौ. …" entry to `remembrance`.
+2. **Muhurat** — `weddingISO` + `muhurtLabel` still carry the 11:47 AM placeholder.
+3. **RSVP number** — real phone number in `contact`.
+
+Confirmed and in place: the date (09.08.2026), the venue (Smt. Malini Patil Bhavan, Gavani, Belagavi district — with the real Maps link), the single-day schedule (Haldi → Vivah → Bhojan, all at the venue), both families, and the no-gifts request.
+
 
 ## Where things live
 

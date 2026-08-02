@@ -5,16 +5,13 @@ import { PartyPopper, Check, Plus, Minus } from "lucide-react";
 import { VIBES, MEALS } from "@/lib/config";
 import { clamp, fx } from "@/lib/helpers";
 import { store } from "@/lib/store";
-import { LotusBloom } from "@/components/decor/Ornaments";
-import Reveal from "@/components/fx/Reveal";
-import Rings3D from "@/components/rsvp/Rings3D";
 
 export default function RSVP() {
   const [vibe, setVibe] = useState(null);
   const [name, setName] = useState("");
   const [count, setCount] = useState(2);
   const [meal, setMeal] = useState(MEALS[0]);
-  const [song, setSong] = useState("");
+  const [note, setNote] = useState("");
   const [done, setDone] = useState(null);
   const [tally, setTally] = useState(87);
   const btnRef = useRef(null);
@@ -27,38 +24,35 @@ export default function RSVP() {
     const newTally = tally + (attending ? count : 0);
     setTally(newTally); setDone({ name: name.trim(), count, attending });
     const log = await store.get("ps-rsvp-log-v1", []);
-    log.push({ name: name.trim(), vibe, count, meal, song, ts: Date.now() });
+    log.push({ name: name.trim(), vibe, count, meal, note, ts: Date.now() });
     await store.set("ps-rsvp-log-v1", log);
     await store.set("ps-rsvp-tally-v1", newTally);
   };
   if (done) return (
     <div className="card confirm">
       <div className="confRing"><Check size={38} strokeWidth={2.5} /></div>
-      <LotusBloom />
-      <Rings3D />
       <h3 className="display" style={{ fontSize: "clamp(24px,4vw,36px)" }}>
         Shubh Mangal <span className="goldtxt">SAVED-haan!</span> 🎉
       </h3>
       <p className="lede" style={{ margin: "10px auto 0" }}>
         {done.attending
           ? `${done.name}, you + ${done.count - 1 || "no"} more = counted, fed, and expected on the dance floor.`
-          : `${done.name}, we'll miss you badly — a laddoo courier is being arranged.`}
+          : `${done.name}, we'll miss you badly — we'll send you the photos.`}
       </p>
-      <p className="humor" style={{ marginTop: 14 }}>Pro tip: stretch before the Sangeet.</p>
-      <p className="meter"><b>{tally}+</b> guests have already said "yeta!"</p>
+      <p className="meter"><b>{tally}+</b> have already said they're coming</p>
     </div>
   );
   return (
     <div>
       <div className="vibes" role="radiogroup" aria-label="How are you attending?">
         {VIBES.map((v, i) => (
-          <Reveal as="button" key={v.id} delay={i * 70} role="radio" aria-checked={vibe === v.id}
+          <button key={v.id} style={{ animationDelay: `${i * 70}ms` }} role="radio" aria-checked={vibe === v.id}
             className={`vibe ${vibe === v.id ? "on" : ""}`} onClick={() => setVibe(v.id)}>
             <span className="ve" aria-hidden="true">{v.emoji}</span>
             <h4 className="display">{v.title}</h4>
             <p>{v.sub}</p>
             <span className="tick"><Check size={13} /></span>
-          </Reveal>
+          </button>
         ))}
       </div>
       <div className="formRow">
@@ -68,7 +62,7 @@ export default function RSVP() {
             placeholder="e.g. Sneha Khot-Magadum" onChange={(e) => setName(e.target.value)} />
         </div>
         <div className="field">
-          <label>Total jankar (people)</label>
+          <label>How many of you?</label>
           <div className="step">
             <button aria-label="Fewer guests" onClick={() => setCount((c) => Math.max(1, c - 1))}><Minus size={16} /></button>
             <b className="display">{count}</b>
@@ -87,9 +81,10 @@ export default function RSVP() {
           </div>
         </div>
         <div className="field">
-          <label htmlFor="ps-song">One song you WILL dance to</label>
-          <input id="ps-song" className="input" value={song} maxLength={64}
-            placeholder="DJ takes bribes in Kunda" onChange={(e) => setSong(e.target.value)} />
+          <label htmlFor="ps-note">Anything we should know?</label>
+          <input id="ps-note" className="input" value={note} maxLength={90}
+            placeholder="Travelling with elders / need help with stairs / arriving late"
+            onChange={(e) => setNote(e.target.value)} />
         </div>
       </div>
       <button ref={btnRef} className="btn solid" style={{ fontSize: 15, padding: "14px 26px" }}

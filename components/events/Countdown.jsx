@@ -26,8 +26,8 @@ export default function Countdown() {
         ))}
       </div>
       <p className="humor">
-        That's roughly <b>{misal}</b> misal breakfasts, <b>{chai}</b> cutting chais,
-        and <b>one</b> very busy Aaji away.
+        That's roughly <b>{chai}</b> cutting chais away — one hill in Gavani,
+        two families, and a whole lot of haldi.
       </p>
     </div>
   );

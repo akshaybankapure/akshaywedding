@@ -1,0 +1,95 @@
+/* Admin dashboard — deliberately plain, fast and readable.
+   No 3D, no animation: this is a working tool, not the invitation. */
+.ad {
+  max-width: 960px; margin: 0 auto; padding: 20px 16px 60px;
+  font-family: var(--font-body), system-ui, sans-serif;
+  color: #f0e9dc; min-height: 100dvh;
+}
+.ad h1 { font-family: var(--font-display), Georgia, serif; font-size: 24px; font-weight: 400; }
+.ad h2 { font-size: 15px; font-weight: 500; margin-bottom: 12px; letter-spacing: .01em; }
+.adCentre { display: grid; place-items: center; }
+.adMuted { color: #a99a86; }
+.adMuted.small, .small { font-size: 11.5px; }
+
+.adTop { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 18px; }
+.adTopBtns { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.adBtn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 40px; padding: 9px 14px; border-radius: 10px; cursor: pointer;
+  font-family: inherit; font-size: 13px; text-decoration: none;
+  background: rgba(255,255,255,.06); border: 1px solid rgba(227,179,65,.3); color: #f0e9dc;
+}
+.adBtn:hover { border-color: rgba(227,179,65,.6); }
+.adBtn.solid { background: linear-gradient(120deg, #e3b341, #f7d87c); color: #241503; border: 0; font-weight: 600; }
+.adBtn.tiny { min-height: 32px; padding: 6px 10px; font-size: 12px; }
+.adBtn:disabled { opacity: .5; cursor: default; }
+.adLink { background: none; border: 0; color: #f7d87c; text-decoration: underline; cursor: pointer; font: inherit; }
+
+.adWarn {
+  background: rgba(255,93,143,.12); border: 1px solid rgba(255,93,143,.5);
+  border-radius: 12px; padding: 12px 14px; margin-bottom: 18px; font-size: 13px;
+}
+
+.adStats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin-bottom: 18px; }
+.adStat {
+  background: rgba(255,255,255,.05); border: 1px solid rgba(227,179,65,.22);
+  border-radius: 12px; padding: 14px 12px; display: flex; flex-direction: column; gap: 2px;
+}
+.adStat b { font-family: var(--font-display), Georgia, serif; font-size: 28px; color: #f7d87c; line-height: 1; }
+.adStat.big b { font-size: 40px; }
+.adStat span { font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: #a99a86; }
+
+.adCard {
+  background: rgba(255,255,255,.04); border: 1px solid rgba(227,179,65,.2);
+  border-radius: 14px; padding: 16px; margin-bottom: 14px;
+}
+.adCardTop { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
+.adCardTop h2 { margin: 0; }
+.adCard label { display: block; font-size: 12px; color: #a99a86; margin-bottom: 12px; }
+.adInput {
+  display: block; width: 100%; margin-top: 5px;
+  min-height: 44px; padding: 11px 12px; border-radius: 10px; font-size: 16px;
+  background: rgba(0,0,0,.3); border: 1px solid rgba(227,179,65,.3); color: #f0e9dc;
+  font-family: inherit;
+}
+.adInput:focus { outline: none; border-color: #e3b341; }
+.adErr { color: #ff8fa8; font-size: 12.5px; margin-bottom: 10px; }
+.adOk { color: #6fe0b4; font-size: 12.5px; margin-bottom: 10px; }
+.adLogin { width: min(94vw, 380px); }
+
+.adTabs { display: flex; gap: 6px; margin-bottom: 14px; }
+.adTabs button {
+  min-height: 38px; padding: 8px 14px; border-radius: 999px; cursor: pointer;
+  font-family: inherit; font-size: 13px;
+  background: transparent; border: 1px solid rgba(227,179,65,.25); color: #a99a86;
+}
+.adTabs button.on { color: #f7d87c; border-color: #e3b341; background: rgba(227,179,65,.1); }
+
+.adPills { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 8px; }
+.adPill {
+  padding: 7px 12px; border-radius: 999px; font-size: 12.5px;
+  background: rgba(227,179,65,.12); border: 1px solid rgba(227,179,65,.3);
+}
+.adPill b { color: #f7d87c; font-size: 14px; }
+
+.adScroll { overflow-x: auto; }
+.adTable { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 560px; }
+.adTable th {
+  text-align: left; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase;
+  color: #a99a86; font-weight: 400; padding: 8px 10px; border-bottom: 1px solid rgba(227,179,65,.22);
+}
+.adTable td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,.06); vertical-align: top; }
+.adYes { color: #6fe0b4; }
+.adNo { color: #a99a86; }
+.adNote { color: #d6c9b4; max-width: 220px; }
+
+.adList { display: flex; flex-direction: column; gap: 8px; }
+.adBless {
+  background: rgba(255,255,255,.04); border: 1px solid rgba(227,179,65,.18);
+  border-radius: 12px; padding: 12px;
+}
+.adBless.hidden { opacity: .45; }
+.adBless p { font-family: var(--font-display), Georgia, serif; font-size: 14.5px; }
+.adBlessFoot { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; gap: 10px; }
+.ad code { background: rgba(0,0,0,.35); padding: 2px 6px; border-radius: 5px; font-size: 12px; }
