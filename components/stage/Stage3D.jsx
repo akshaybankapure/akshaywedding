@@ -142,9 +142,13 @@ function makeMandap(gold, bright) {
   return g;
 }
 
-export default function Stage3D({ prog, theme, reduced, party }) {
+function isCoarse() {
+  return typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
+}
+
+export default function Stage3D({ progRef, theme, reduced, party }) {
   const hostRef = useRef(null);
-  const pRef = useRef(prog); pRef.current = prog;
+  const pRef = progRef;
   const partyRef = useRef(party); partyRef.current = party;
   const apiRef = useRef(null);
   const [ok, setOk] = useState(true);
@@ -152,11 +156,16 @@ export default function Stage3D({ prog, theme, reduced, party }) {
   useEffect(() => {
     const host = hostRef.current; if (!host) return;
     let R;
-    try { R = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" }); }
+    try { R = new THREE.WebGLRenderer({ antialias: !isCoarse(), alpha: true, powerPreference: "high-performance" }); }
     catch { setOk(false); return; }
 
-    const small = window.innerWidth < 700;
-    R.setPixelRatio(Math.min(window.devicePixelRatio || 1, small ? 1.6 : 2));
+    /* Quality tiers. A phone GPU rendering a full scene at DPR 2 every
+       frame is what made this crawl. Mobile now runs at ~1x resolution,
+       capped to 30fps, with far fewer objects. */
+    const coarse = window.matchMedia("(pointer: coarse)").matches;
+    const small = window.innerWidth < 820 || coarse;
+    const lowPower = small || (navigator.hardwareConcurrency || 8) <= 4;
+    R.setPixelRatio(Math.min(window.devicePixelRatio || 1, lowPower ? 1 : 1.5));
     R.outputEncoding = THREE.sRGBEncoding;
     R.toneMapping = THREE.ACESFilmicToneMapping;
     R.toneMappingExposure = 1.05;
@@ -329,7 +338,7 @@ export default function Stage3D({ prog, theme, reduced, party }) {
 
     /* ── 5 · Ashirwad: a sky of lanterns rising for good ── */
     addZone(5, (g) => {
-      const n = small ? 70 : 120;
+      const n = lowPower ? 26 : 70;
       const geo = new THREE.BufferGeometry();
       const pos = new Float32Array(n * 3), vel = new Float32Array(n);
       for (let i = 0; i < n; i++) {
@@ -349,7 +358,7 @@ export default function Stage3D({ prog, theme, reduced, party }) {
     });
 
     /* ── petals: warm sprites, always BEHIND the panels ── */
-    const PN = small ? 18 : 30;
+    const PN = lowPower ? 8 : 20;
     const petals = [];
     for (let i = 0; i < PN; i++) {
       const sp = new THREE.Sprite(new THREE.SpriteMaterial({
@@ -370,7 +379,15 @@ export default function Stage3D({ prog, theme, reduced, party }) {
       cam.updateProjectionMatrix();
       if (reduced) R.render(scene, cam);
     };
-    const ro = new ResizeObserver(resize); ro.observe(host); resize();
+    let lastW = 0, lastH = 0;
+    const onResize = () => {
+      const w = host.clientWidth, h = host.clientHeight;
+      // ignore the small height changes a mobile address bar causes
+      if (w === lastW && Math.abs(h - lastH) < 120) return;
+      lastW = w; lastH = h; resize();
+    };
+    const ro = new ResizeObserver(onResize); ro.observe(host); resize();
+    lastW = host.clientWidth; lastH = host.clientHeight;
 
     let tx = 0, ty = 0;
     const onMove = (e) => { tx = e.clientX / window.innerWidth - .5; ty = e.clientY / window.innerHeight - .5; };
@@ -379,10 +396,8 @@ export default function Stage3D({ prog, theme, reduced, party }) {
       tx = Math.max(-.6, Math.min(.6, e.gamma / 50));
       ty = Math.max(-.6, Math.min(.6, (e.beta - 45) / 70));
     };
-    if (!reduced) {
-      window.addEventListener("pointermove", onMove, { passive: true });
-      window.addEventListener("deviceorientation", onTilt, { passive: true });
-    }
+    if (!reduced && !coarse) window.addEventListener("pointermove", onMove, { passive: true });
+    if (!reduced && coarse) window.addEventListener("deviceorientation", onTilt, { passive: true });
 
     const PAL = {
       night: { top: 0x080b1e, bot: 0x2a1330, glow: 0x7c1f38, fog: 0x0a0e24, hemi: .75 },
@@ -394,7 +409,7 @@ export default function Stage3D({ prog, theme, reduced, party }) {
     let raf = 0, alive = true, camY = 0;
     const step = () => {
       const dt = Math.min(clock.getDelta(), .05), t = clock.elapsedTime;
-      const p = pRef.current, pt = partyRef.current, sp = pt ? 2.2 : 1;
+      const p = pRef.current || 0, pt = partyRef.current, sp = pt ? 2.2 : 1;
       sky.material.uniforms.uT.value = t * sp;
 
       /* the flight — eased, with a gentle drift so it never feels like
@@ -459,7 +474,16 @@ export default function Stage3D({ prog, theme, reduced, party }) {
       }
       R.render(scene, cam);
     };
-    const loop = () => { if (!alive) return; if (!document.hidden) step(); raf = requestAnimationFrame(loop); };
+    const minDt = lowPower ? 1000 / 30 : 1000 / 60;   // cap the frame rate
+    let lastFrame = 0;
+    const loop = (t) => {
+      if (!alive) return;
+      raf = requestAnimationFrame(loop);
+      if (document.hidden) return;
+      if (t - lastFrame < minDt) return;
+      lastFrame = t;
+      step();
+    };
     if (reduced) step(); else raf = requestAnimationFrame(loop);
 
     apiRef.current = {

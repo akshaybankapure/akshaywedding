@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Send } from "lucide-react";
 import { SEED_BLESSINGS } from "@/lib/config";
 import { fx } from "@/lib/helpers";
-import { store } from "@/lib/store";
+import { blessingsApi } from "@/lib/store";
 
 export default function BlessingsWall() {
   const [items, setItems] = useState(SEED_BLESSINGS);
@@ -12,10 +12,7 @@ export default function BlessingsWall() {
   const [msg, setMsg] = useState("");
   const [sent, setSent] = useState(false);
   useEffect(() => {
-    store.get("ps-blessings-v1", []).then((saved) => {
-      const live = (Array.isArray(saved) ? saved : []).filter((b) => !b.hidden);
-      setItems([...live, ...SEED_BLESSINGS]);
-    });
+    blessingsApi.list().then((live) => setItems([...live, ...SEED_BLESSINGS]));
   }, []);
   const addEmoji = (e) => setMsg((m) => (m + " " + e).trim().slice(0, 160));
   const post = async () => {
@@ -27,12 +24,13 @@ export default function BlessingsWall() {
       c: (Math.random() * 4) | 0,
       ts: Date.now(),
     };
-    const next = [entry, ...items];
-    setItems(next); setMsg(""); setSent(true);
+    setItems([entry, ...items]); setMsg(""); setSent(true);
     setTimeout(() => setSent(false), 2500);
     if (fx.burst) fx.burst(window.innerWidth / 2, window.innerHeight * 0.35);
-    const saved = await store.get("ps-blessings-v1", []);
-    await store.set("ps-blessings-v1", [entry, ...(Array.isArray(saved) ? saved : [])].slice(0, 120));
+    try {
+      const live = await blessingsApi.post(entry);
+      if (live.length) setItems([...live, ...SEED_BLESSINGS]);
+    } catch { /* keep it on screen even if the save failed */ }
   };
   const tints = [
     "linear-gradient(150deg, rgba(227,179,65,.14), transparent)",

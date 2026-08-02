@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import { PartyPopper, Check, Plus, Minus } from "lucide-react";
-import { VIBES, MEALS } from "@/lib/config";
+import { VIBES, MEALS, CONFIG } from "@/lib/config";
 import { clamp, fx } from "@/lib/helpers";
-import { store } from "@/lib/store";
+import { rsvpApi } from "@/lib/store";
 
 export default function RSVP() {
   const [vibe, setVibe] = useState(null);
@@ -13,20 +13,22 @@ export default function RSVP() {
   const [meal, setMeal] = useState(MEALS[0]);
   const [note, setNote] = useState("");
   const [done, setDone] = useState(null);
-  const [tally, setTally] = useState(87);
+  const [tally, setTally] = useState(0);
+  const [saveErr, setSaveErr] = useState(false);
   const btnRef = useRef(null);
-  useEffect(() => { store.get("ps-rsvp-tally-v1", 87).then((t) => setTally(Number(t) || 87)); }, []);
+  useEffect(() => { rsvpApi.summary().then((d) => setTally(Number(d.heads) || 0)); }, []);
   const submit = async () => {
     if (!vibe || !name.trim()) return;
     const rect = btnRef.current?.getBoundingClientRect();
     if (fx.burst && rect) fx.burst(rect.left + rect.width / 2, rect.top);
     const attending = vibe !== "afar";
-    const newTally = tally + (attending ? count : 0);
-    setTally(newTally); setDone({ name: name.trim(), count, attending });
-    const log = await store.get("ps-rsvp-log-v1", []);
-    log.push({ name: name.trim(), vibe, count, meal, note, ts: Date.now() });
-    await store.set("ps-rsvp-log-v1", log);
-    await store.set("ps-rsvp-tally-v1", newTally);
+    setDone({ name: name.trim(), count, attending });
+    try {
+      const res = await rsvpApi.submit({ name: name.trim(), vibe, count, meal, note });
+      if (typeof res.heads === "number") setTally(res.heads);
+    } catch {
+      setSaveErr(true);           // tell them honestly rather than pretending
+    }
   };
   if (done) return (
     <div className="card confirm">
@@ -39,7 +41,12 @@ export default function RSVP() {
           ? `${done.name}, you + ${done.count - 1 || "no"} more = counted, fed, and expected on the dance floor.`
           : `${done.name}, we'll miss you badly — we'll send you the photos.`}
       </p>
-      <p className="meter"><b>{tally}+</b> have already said they're coming</p>
+      {tally > 0 && <p className="meter"><b>{tally}</b> already coming</p>}
+      {saveErr && (
+        <p className="meter" style={{ color: "var(--rose)" }}>
+          We couldn't reach the server — please call {CONFIG.contact.replace("RSVP · ", "")} so we don't miss you.
+        </p>
+      )}
     </div>
   );
   return (

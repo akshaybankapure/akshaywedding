@@ -1,48 +1,11 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { PHRASES } from "@/lib/config";
 
-/* ═══════════════════════════════════════════════════════════════════
-   The SVG skin over the 3D world. Like the scene below it, none of this
-   unmounts — a single ribbon, a single rangoli and a single garland are
-   drawn once and then continuously re-shaped by scroll progress.
-   ═══════════════════════════════════════════════════════════════════ */
+/* Tap-anywhere confetti. One canvas, fixed to the viewport, idle until
+   something actually bursts — the loop stops itself when no particles
+   remain, so it costs nothing while you're just reading. */
 
-/* A rangoli that never redraws from scratch — it rotates, breathes and
-   swaps petal counts continuously as you travel. */
-export function LiveRangoli({ prog, party }) {
-  const petals = 8 + Math.round(prog * 8);
-  const rot = prog * 420 + (party ? 0 : 0);
-  return (
-    <svg className={`liveRangoli ${party ? "party" : ""}`} viewBox="-60 -60 120 120" aria-hidden="true"
-      style={{ transform: `rotate(${rot}deg) scale(${1 + Math.sin(prog * Math.PI) * 0.22})` }}>
-      {Array.from({ length: petals }).map((_, i) => (
-        <ellipse key={i} rx="9" ry="34" cx="0" cy="0"
-          style={{ transform: `rotate(${(360 / petals) * i}deg)`, animationDelay: `${i * 90}ms` }} />
-      ))}
-      <circle r="9" className="rgCore" />
-      <circle r="46" className="rgRim" />
-      <circle r="54" className="rgRim slow" />
-    </svg>
-  );
-}
-
-/* Phrases with their meanings — no wordplay, no invented lines. */
-export function PhraseTicker({ prog }) {
-  const i = Math.min(PHRASES.length - 1, Math.floor(prog * PHRASES.length));
-  const ph = PHRASES[i];
-  return (
-    <div className="ticker" key={ph.txt}>
-      <span className={ph.lang === "mr" ? "dev" : "kan"}>{ph.txt}</span>
-      <i>{ph.mean}</i>
-    </div>
-  );
-}
-
-/* Tap/click anywhere → confetti of petals, akshata and sparks.
-   Also fires automatically at each act boundary, so the whole journey
-   keeps popping without the guest doing anything. */
 export function Confetti({ reduced, bindRef }) {
   const cRef = useRef(null);
   useEffect(() => {
@@ -69,7 +32,8 @@ export function Confetti({ reduced, bindRef }) {
           rice: Math.random() < .35,
         });
       }
-      if (parts.length > 700) parts.splice(0, parts.length - 700);
+      if (parts.length > 500) parts.splice(0, parts.length - 500);
+      kick();
     };
     if (bindRef) bindRef.current = burst;
 
@@ -79,10 +43,11 @@ export function Confetti({ reduced, bindRef }) {
     };
     window.addEventListener("pointerdown", tap, { passive: true });
 
-    let raf = 0, alive = true;
+    let raf = 0, alive = true, running = false;
     const loop = () => {
       if (!alive) return;
       ctx.clearRect(0, 0, W, H);
+      if (!parts.length) { running = false; return; }   // idle → stop burning frames
       for (let i = parts.length - 1; i >= 0; i--) {
         const p = parts[i];
         p.vy += .22; p.vx *= .99; p.vy *= .99;
@@ -97,7 +62,7 @@ export function Confetti({ reduced, bindRef }) {
       }
       raf = requestAnimationFrame(loop);
     };
-    raf = requestAnimationFrame(loop);
+    const kick = () => { if (!running) { running = true; raf = requestAnimationFrame(loop); } };
     return () => {
       alive = false; cancelAnimationFrame(raf); ro.disconnect();
       window.removeEventListener("pointerdown", tap);
