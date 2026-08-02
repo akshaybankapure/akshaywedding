@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Send, Mic } from "lucide-react";
+import { Send } from "lucide-react";
 import { SEED_BLESSINGS } from "@/lib/config";
 import { fx } from "@/lib/helpers";
 import { store } from "@/lib/store";
@@ -12,13 +12,21 @@ export default function BlessingsWall() {
   const [msg, setMsg] = useState("");
   const [sent, setSent] = useState(false);
   useEffect(() => {
-    store.get("ps-blessings-v1", []).then((saved) =>
-      setItems([...(Array.isArray(saved) ? saved : []), ...SEED_BLESSINGS]));
+    store.get("ps-blessings-v1", []).then((saved) => {
+      const live = (Array.isArray(saved) ? saved : []).filter((b) => !b.hidden);
+      setItems([...live, ...SEED_BLESSINGS]);
+    });
   }, []);
   const addEmoji = (e) => setMsg((m) => (m + " " + e).trim().slice(0, 160));
   const post = async () => {
     if (!msg.trim()) return;
-    const entry = { n: (name.trim() || "Someone lovely").slice(0, 30), m: msg.trim().slice(0, 160), c: (Math.random() * 4) | 0, ts: Date.now() };
+    const entry = {
+      id: `b${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+      who: (name.trim() || "Someone lovely").slice(0, 30),
+      txt: msg.trim().slice(0, 160),
+      c: (Math.random() * 4) | 0,
+      ts: Date.now(),
+    };
     const next = [entry, ...items];
     setItems(next); setMsg(""); setSent(true);
     setTimeout(() => setSent(false), 2500);
@@ -60,15 +68,14 @@ export default function BlessingsWall() {
           </button>
         </div>
         <p className="privacyNote" style={{ marginTop: 12 }}>
-          <Mic size={11} style={{ verticalAlign: "-1px" }} /> Voice blessings? There's a mic booth at
-          the venue. And yes — this wall is public to everyone opening this invite. Bless responsibly.
+          Everyone opening this invite can read the wall — so keep it lovely.
         </p>
       </div>
       <div className="wall">
         {items.map((b, i) => (
-          <div className="card bless" key={b.ts || `seed-${i}`}
-            style={{ background: tints[b.c % 4] }}>
-            <p>{b.m}</p><span>— {b.n}</span>
+          <div className="card bless" key={b.id || b.ts || `seed-${i}`}
+            style={{ background: tints[(b.c ?? i) % 4] }}>
+            <p>{b.txt}</p><span>— {b.who}</span>
           </div>
         ))}
       </div>

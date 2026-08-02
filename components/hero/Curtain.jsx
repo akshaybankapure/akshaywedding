@@ -1,7 +1,6 @@
 "use client";
 
 import { clamp } from "@/lib/helpers";
-import Countdown from "@/components/events/Countdown";
 
 export default function Curtain({ p }) {
   const open = clamp((p - 0.12) / 0.5, 0, 1);

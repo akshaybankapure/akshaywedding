@@ -1,176 +1,805 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import {
-  Music, VolumeX, Sun, Moon, MapPin, CalendarPlus, Download, ChevronDown,
-  Sparkles, Heart, Send, PartyPopper, Utensils, Plane,
-  Shirt, Hotel, Umbrella, Check, Plus, Minus, Star, Flame, Mic, Clock
-} from "lucide-react";
+import { CalendarPlus, Check, ChevronDown, Clock, Download, Gift, Heart, MapPin, Minus, Moon, Music, PartyPopper, Plane, Plus, Send, Shirt, Sparkles, Star, Sun, Umbrella, Users, Utensils, VolumeX, X } from "lucide-react";
 import * as THREE from "three";
 
-/* ════════════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════════
+   AKSHAY ♥ SHRADDHA · 09.08.2026
+   Smt. Malini Patil Bhavan · Gavani, Belagavi
+   Preview build — the full project adds /admin and server-backed RSVPs.
+   ═══════════════════════════════════════════════════════════════════ */
+
+const CSS = `
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Sora:wght@300;400;600&family=Tiro+Devanagari+Marathi&family=Noto+Sans+Kannada:wght@300;400&display=swap');
+/* ═══════════════════════════════════════════════════════════════════
+   Akshay ♥ Shraddha — phone-first design system.
+   Authored for a 380px viewport first; larger screens only get more
+   breathing room. The whole invitation lives in one fixed viewport, so
+   there is no page layout to speak of — only layers.
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Sora', system-ui, sans-serif;
+  --font-dev: 'Tiro Devanagari Marathi', 'Noto Sans Devanagari', serif;
+  --font-kan: 'Noto Sans Kannada', sans-serif;
+
+  --bg: #0a0e24; --bg2: #131938;
+  --ink: #f4ead6; --muted: #b6a688;
+  --gold: #e3b341; --gold2: #f7d87c;
+  --rose: #ff5d8f; --emerald: #23c08f; --maroon: #7c1f38;
+  --card: rgba(21, 27, 56, .72); --line: rgba(227, 179, 65, .28);
+  --glass: rgba(9, 12, 30, .90);
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+}
+
+.pswrap *, .viewport * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+
+
+.pswrap {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-weight: 300;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+.display { font-family: var(--font-display); font-weight: 400; }
+.dev { font-family: var(--font-dev); }
+.kan { font-family: var(--font-kan); }
+
+/* the tall empty element that provides scroll distance */
+.scroller { width: 1px; pointer-events: none; }
+
+/* everything visible lives here, pinned */
+.viewport {
+  position: fixed; inset: 0;
+  color: var(--ink);
+  overflow: hidden;
+  background: linear-gradient(180deg, var(--bg), var(--bg2) 60%, var(--bg));
+  transition: background .8s ease;
+}
+.viewport[data-theme='day'] {
+  --bg: #fdf6e8; --bg2: #f7e7ca; --ink: #2b0d18; --muted: #6b4a36;
+  --gold: #8a6210; --gold2: #a87c1c; --rose: #a8143f; --emerald: #0b6249;
+  --card: rgba(255, 252, 245, .92); --line: rgba(138, 98, 16, .34);
+  --glass: rgba(255, 251, 243, .94);
+}
+.viewport.party {
+  --gold: #ffd23f; --rose: #ff2e88; --emerald: #14e3c2; --line: rgba(255, 46, 136, .4);
+}
+
+.grain::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 6; opacity: .05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.stage3d { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+
+/* ── continuous SVG skin ─────────────────────────────────────── */
+
+.liveRangoli {
+  position: absolute; left: 50%; top: 50%;
+  width: min(78vmin, 460px); height: min(78vmin, 460px);
+  margin: calc(min(78vmin, 460px) / -2) 0 0 calc(min(78vmin, 460px) / -2);
+  z-index: 2; pointer-events: none; opacity: .17;
+  transition: transform .3s linear;
+}
+.liveRangoli ellipse {
+  fill: none; stroke: var(--gold); stroke-width: 1.6; transform-origin: center;
+  animation: breathe 5s ease-in-out infinite;
+}
+.liveRangoli .rgCore { fill: var(--rose); opacity: .8; }
+.liveRangoli .rgRim {
+  fill: none; stroke: var(--gold); stroke-width: .8; stroke-dasharray: 3 7;
+  animation: spin 40s linear infinite; transform-origin: center;
+}
+.liveRangoli .rgRim.slow { stroke: var(--emerald); animation-duration: 70s; animation-direction: reverse; }
+.liveRangoli.party { opacity: .3; }
+@keyframes breathe { 50% { transform: scale(1.09) rotate(6deg); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.confetti { position: absolute; inset: 0; z-index: 5; pointer-events: none; width: 100%; height: 100%; }
+
+/* ── chrome ──────────────────────────────────────────────────── */
+.chrome {
+  position: absolute; z-index: 7; left: 0; right: 0; top: 0;
+  padding: calc(10px + var(--safe-t)) 14px 10px;
+  display: flex; align-items: center; justify-content: space-between;
+  background: linear-gradient(180deg, rgba(0, 0, 0, .35), transparent);
+}
+.viewport[data-theme='day'] .chrome { background: linear-gradient(180deg, rgba(255, 255, 255, .5), transparent); }
+.mono {
+  font-family: var(--font-display); font-style: italic; font-size: 17px;
+  letter-spacing: .05em; color: var(--gold);
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.chromeBtns { display: flex; gap: 7px; }
+.ic {
+  width: 40px; height: 40px; border-radius: 50%;
+  display: grid; place-items: center; cursor: pointer;
+  background: var(--card); color: var(--ink);
+  border: 1px solid var(--line); backdrop-filter: blur(8px);
+  transition: transform .2s, color .2s, border-color .2s;
+}
+.ic:active { transform: scale(.9); }
+.ic.on { color: var(--rose); border-color: var(--rose); box-shadow: 0 0 16px rgba(255, 46, 136, .5); }
+
+/* act rail — bottom on phones, side on desktop */
+.rail {
+  position: absolute; z-index: 7; left: 0; right: 0; bottom: 0;
+  padding: 8px 8px calc(8px + var(--safe-b));
+  display: flex; gap: 4px; justify-content: center; align-items: center;
+  background: linear-gradient(0deg, rgba(0, 0, 0, .45), transparent);
+  overflow-x: auto; scrollbar-width: none;
+}
+.rail::-webkit-scrollbar { display: none; }
+.railDot {
+  flex: 0 0 auto; background: none; border: 0; cursor: pointer;
+  padding: 8px 9px; min-height: 44px; color: var(--muted);
+  font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase;
+  border-bottom: 2px solid transparent; transition: color .3s, border-color .3s;
+  font-family: inherit;
+}
+.railDot.on { color: var(--gold); border-bottom-color: var(--gold); }
+.railFill { display: none; }
+
+.ticker {
+  position: absolute; z-index: 7; left: 0; right: 0; top: calc(58px + var(--safe-t));
+  text-align: center; pointer-events: none;
+  animation: tickIn .6s ease;
+}
+.ticker span { font-size: 15px; color: var(--gold); }
+.ticker i {
+  display: block; font-size: 10px; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--muted); font-style: normal; margin-top: 1px;
+}
+@keyframes tickIn { from { opacity: 0; transform: translateY(-6px); } }
+
+/* ── act panels ──────────────────────────────────────────────── */
+.panel {
+  position: absolute; z-index: 4;
+  left: 50%; top: 50%; translate: -50% -50%;
+  width: min(92vw, 600px);
+  max-width: calc(100vw - 22px);
+  max-height: calc(100dvh - 176px);
+  display: flex; flex-direction: column;
+  will-change: transform, opacity;
+}
+
+/* text always sits on glass — never naked over the 3D */
+.glass {
+  display: flex; flex-direction: column; gap: 11px;
+  flex: 0 1 auto; max-height: 100%; min-height: 0;
+  padding: 18px 16px;
+  border-radius: 22px;
+  background: var(--glass);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(18px) saturate(1.25);
+  -webkit-backdrop-filter: blur(18px) saturate(1.25);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .42), inset 0 1px 0 rgba(255, 255, 255, .08);
+  overflow: hidden;
+  min-height: 0;
+}
+.viewport[data-theme='day'] .beat,
+.viewport[data-theme='day'] .ev,
+.viewport[data-theme='day'] .pinCard,
+.viewport[data-theme='day'] .foot { background: rgba(120, 80, 20, .06); }
+.viewport[data-theme='day'] .glass { box-shadow: 0 20px 60px rgba(90, 50, 20, .18); }
+.panel.center { text-align: center; align-items: center; }
+
+.panel.center .flowWrap { position: relative; flex: 1 1 auto; min-height: 0; display: flex; }
+
+.flow {
+  flex: 1 1 auto; min-height: 0;
+  overflow-y: auto;
+  /* Keep this AUTO. The 'contain' value swallows the wheel and freezes
+     the whole page; auto lets the scroll chain on to the journey. */
+  overscroll-behavior-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+  padding-right: 6px;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 12px, #000 calc(100% - 16px), transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0, #000 12px, #000 calc(100% - 16px), transparent 100%);
+}
+.flow::-webkit-scrollbar { width: 5px; }
+.flow::-webkit-scrollbar-track { background: transparent; }
+.flow::-webkit-scrollbar-thumb { background: var(--line); border-radius: 6px; }
+.flow::-webkit-scrollbar-thumb:hover { background: var(--gold); }
+
+.flowInner { display: flex; flex-direction: column; gap: 9px; padding-bottom: 10px; }
+
+/* "there's more below" nudge */
+.flowMore {
+  position: absolute; left: 50%; bottom: -2px; translate: -50% 0;
+  width: 30px; height: 30px; border-radius: 50%;
+  display: grid; place-items: center; pointer-events: none;
+  background: var(--glass); border: 1px solid var(--line); color: var(--gold);
+  opacity: 0; transition: opacity .3s;
+  animation: bob 2s ease-in-out infinite;
+}
+.flowMore.on { opacity: .9; }
+
+.eyebrow { justify-content: center; }
+.h2 { font-size: clamp(26px, 8vw, 46px); line-height: 1.08; letter-spacing: -.01em; }
+
+.invok { font-size: clamp(11px, 3.4vw, 14px); color: var(--gold); letter-spacing: .04em; }
+.names {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+  gap: 8px; font-size: clamp(34px, 12vw, 78px); line-height: 1.02;
+  transition: opacity .4s, transform .4s;
+}
+.names em { font-size: .5em; color: var(--rose); font-style: italic; }
+.sub { font-size: clamp(13px, 4vw, 18px); color: var(--muted); }
+.bigDate {
+  font-size: clamp(24px, 8vw, 44px); color: var(--gold);
+  letter-spacing: .1em; margin-top: 6px;
+}
+.muhurt { font-size: 12px; letter-spacing: .1em; color: var(--muted); text-transform: uppercase; }
+.parents { font-size: 11.5px; opacity: .85; }
+
+.shimmer {
+  background: linear-gradient(108deg, var(--gold) 20%, #fff3c8 45%, var(--gold) 70%);
+  background-size: 220% 100%; -webkit-background-clip: text; background-clip: text;
+  color: transparent; animation: shim 5s ease-in-out infinite;
+}
+@keyframes shim { 0% { background-position: 130% 0; } 100% { background-position: -130% 0; } }
+
+/* ── controls & cards ────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  min-height: 44px; padding: 11px 16px; border-radius: 999px;
+  font-family: inherit; font-size: 13.5px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--card); color: var(--ink);
+  backdrop-filter: blur(8px); transition: transform .18s, box-shadow .25s;
+  text-decoration: none;
+}
+.btn:active { transform: scale(.96); }
+.btn.solid {
+  background: linear-gradient(120deg, var(--gold), var(--gold2));
+  color: #241503; border-color: transparent; font-weight: 600;
+  box-shadow: 0 10px 30px rgba(227, 179, 65, .3);
+}
+.cta { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 12px; transition: opacity .4s; }
+
+.mode { display: flex; gap: 6px; }
+.mode button {
+  flex: 1; min-height: 44px; padding: 10px; border-radius: 12px; cursor: pointer;
+  font-family: inherit; font-size: 12.5px;
+  background: var(--card); border: 1px solid var(--line); color: var(--muted);
+  transition: color .25s, border-color .25s;
+}
+.mode button.on { color: var(--gold); border-color: var(--gold); }
+
+.beat, .ev, .pinCard, .foot {
+  background: rgba(255, 255, 255, .045); border: 1px solid var(--line); border-radius: 14px;
+  padding: 13px;
+  animation: rise .55s cubic-bezier(.2, .9, .3, 1) both;
+}
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } }
+.beat h3, .ev h3, .pinCard h3 { font-size: 17px; margin: 3px 0 5px; }
+.beat p, .ev p { font-size: 13.5px; }
+.beat p { animation: fadeIn .45s ease; }
+@keyframes fadeIn { from { opacity: 0; } }
+.beatY { font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--rose); }
+.tag { font-family: var(--font-display); font-style: italic; font-size: 12.5px; color: var(--rose); }
+.meta { font-size: 12px; color: var(--muted); }
+.dress { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.dress b { color: var(--gold); }
+
+.ev { display: flex; gap: 12px; align-items: flex-start; }
+.evEmoji { font-size: 26px; line-height: 1; }
+.evBody { flex: 1; min-width: 0; }
+.evBtns { display: flex; gap: 6px; margin-top: 9px; flex-wrap: wrap; }
+.evBtns .btn { min-height: 38px; padding: 8px 12px; font-size: 12px; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  font-size: 11.5px; padding: 7px 11px; border-radius: 999px;
+  border: 1px solid var(--line); color: var(--muted); background: var(--card);
+}
+
+.pinRow { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+.pinRow::-webkit-scrollbar { display: none; }
+.pinChip {
+  flex: 0 0 auto; min-height: 40px; padding: 9px 13px; border-radius: 999px; cursor: pointer;
+  font-family: inherit; font-size: 12px; white-space: nowrap;
+  background: var(--card); border: 1px solid var(--line); color: var(--muted);
+  transition: color .25s, border-color .25s;
+}
+.pinChip.on { color: var(--gold); border-color: var(--gold); }
+.note { font-size: 12px; color: var(--muted); display: flex; gap: 7px; align-items: flex-start; }
+
+.foot { text-align: center; font-size: 12px; color: var(--muted); }
+.foot .display { font-size: 19px; margin-bottom: 6px; }
+.foot p + p { margin-top: 4px; }
+
+.cue {
+  position: absolute; z-index: 7; left: 50%; bottom: calc(64px + var(--safe-b));
+  transform: translateX(-50%); text-align: center; color: var(--muted);
+  animation: bob 2.2s ease-in-out infinite; pointer-events: none;
+}
+.cue span { display: block; font-family: var(--font-dev); font-size: 15px; color: var(--gold); }
+.cue i { font-size: 10px; letter-spacing: .18em; text-transform: uppercase; font-style: normal; }
+@keyframes bob { 50% { transform: translate(-50%, 8px); } }
+
+/* ── larger screens: more room, rail moves to the side ───────── */
+@media (min-width: 820px) {
+  .panel {
+    max-height: calc(100dvh - 150px);
+    width: min(74vw, 620px);
+    left: calc(50% - 68px);
+  }
+  .rail {
+    left: auto; right: 14px; top: 50%; bottom: auto;
+    transform: translateY(-50%); flex-direction: column;
+    align-items: flex-end;
+    background: none; padding: 0; gap: 1px;
+    overflow: visible; max-width: 124px;
+  }
+  .railDot {
+    border-bottom: 0; border-right: 2px solid transparent;
+    text-align: right; white-space: nowrap;
+    padding: 6px 9px 6px 4px; font-size: 9.5px; letter-spacing: .08em;
+  }
+  .railDot.on { border-right-color: var(--gold); }
+  .ticker { top: auto; bottom: 22px; }
+}
+
+/* ── focus & motion ──────────────────────────────────────────── */
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; border-radius: 6px; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   THE ANTARPAT — the one element everyone loved, kept intact.
+   Two silk halves that part on scroll, with woven texture, gold border,
+   tassels and self-drawing embroidery.
+   ═══════════════════════════════════════════════════════════════════ */
+.curtain { position: absolute; inset: 0; z-index: 8; pointer-events: none; overflow: hidden; }
+.cloth {
+  position: absolute; top: 0; bottom: 0; width: 51%;
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.04) 0 2px, transparent 2px 5px),
+    linear-gradient(160deg, #8e2440, #5d1229 45%, #7c1f38);
+  box-shadow: inset 0 0 90px rgba(0,0,0,.55);
+  will-change: transform;
+}
+.cloth.L { left: 0; border-right: 3px solid var(--gold); }
+.cloth.R { right: 0; border-left: 3px solid var(--gold); }
+.cloth::after {
+  content: ''; position: absolute; inset: 8px;
+  border: 1px solid rgba(227,179,65,.35); border-radius: 3px;
+}
+.tassels { position: absolute; bottom: 0; left: 0; right: 0; display: flex; justify-content: space-around; }
+.tassels i {
+  width: 3px; height: 26px; border-radius: 0 0 3px 3px;
+  background: linear-gradient(180deg, var(--gold), transparent);
+  animation: sway 3.4s ease-in-out infinite;
+}
+.tassels i:nth-child(2n) { animation-delay: .5s; height: 20px; }
+.tassels i:nth-child(3n) { animation-delay: 1s; height: 30px; }
+@keyframes sway { 50% { transform: rotate(5deg); } }
+
+.embroid { position: absolute; left: 4%; right: 4%; bottom: 34px; height: 26px; opacity: .9; }
+.embroid path {
+  stroke: var(--gold2); fill: none; stroke-width: 1.3; stroke-linecap: round;
+  stroke-dasharray: 1; stroke-dashoffset: 1; animation: emb 2.4s .4s ease forwards;
+}
+@keyframes emb { to { stroke-dashoffset: 0; } }
+
+.clothText {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  text-align: center; padding: 20px;
+}
+.clothText .big { font-size: clamp(20px, 6.4vw, 40px); color: var(--gold2); line-height: 1.25; }
+.clothText .small {
+  font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
+  color: rgba(244,234,214,.72); margin-top: 10px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Reused feature components (countdown, guide, RSVP, blessings)
+   ═══════════════════════════════════════════════════════════════════ */
+.card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+  padding: 14px; backdrop-filter: blur(10px);
+}
+.lede { font-size: 13.5px; color: var(--muted); }
+.goldtxt { color: var(--gold); }
+
+.count { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.tile {
+  background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+  padding: 10px 4px; text-align: center;
+}
+.tile b {
+  display: block; font-family: var(--font-display); font-weight: 500;
+  font-size: clamp(20px, 7vw, 34px); color: var(--gold); line-height: 1.05;
+}
+.tile span { font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.humor { font-family: var(--font-display); font-style: italic; font-size: 12.5px; color: var(--muted); text-align: center; }
+
+.tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tabs button {
+  flex: 0 0 auto; min-height: 40px; padding: 9px 13px; border-radius: 999px; cursor: pointer;
+  font-family: inherit; font-size: 12px; white-space: nowrap;
+  background: var(--card); border: 1px solid var(--line); color: var(--muted);
+}
+.tabs button.on { color: var(--gold); border-color: var(--gold); }
+.guideRow { display: flex; gap: 9px; padding: 9px 0; border-bottom: 1px dashed var(--line); font-size: 13px; }
+.guideRow:last-child { border-bottom: 0; }
+.guideRow b { color: var(--gold); font-weight: 500; }
+
+.vibes { display: flex; flex-direction: column; gap: 7px; }
+.vibe {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center;
+  column-gap: 11px; row-gap: 1px; text-align: left; width: 100%;
+  min-height: 56px; padding: 11px 13px; border-radius: 14px; cursor: pointer;
+  font-family: inherit;
+  background: rgba(255, 255, 255, .045); border: 1px solid var(--line); color: var(--ink);
+  transition: border-color .22s, background .22s, transform .14s;
+}
+.viewport[data-theme='day'] .vibe { background: rgba(120, 80, 20, .06); }
+.vibe:active { transform: scale(.985); }
+.vibe.on { border-color: var(--gold); background: rgba(227, 179, 65, .1); }
+.vibe .ve { grid-row: 1 / 3; font-size: 22px; line-height: 1; }
+.vibe h4 { grid-column: 2; font-size: 14.5px; font-weight: 400; }
+.vibe p { grid-column: 2; font-size: 12px; color: var(--muted); line-height: 1.35; }
+.vibe .tick { grid-column: 3; grid-row: 1 / 3; color: var(--emerald); opacity: 0; transition: opacity .2s; }
+.vibe.on .tick { opacity: 1; }
+
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field > span { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.input {
+  width: 100%; min-height: 46px; padding: 12px 14px; border-radius: 12px;
+  background: var(--card); border: 1px solid var(--line); color: var(--ink);
+  font-family: inherit; font-size: 16px; /* 16px keeps iOS from zooming */
+}
+.input:focus { outline: none; border-color: var(--gold); }
+.formRow { display: flex; gap: 8px; flex-wrap: wrap; }
+.step { display: flex; align-items: center; gap: 4px; }
+.step button {
+  width: 44px; height: 44px; border-radius: 12px; cursor: pointer;
+  background: var(--card); border: 1px solid var(--line); color: var(--ink);
+  display: grid; place-items: center;
+}
+.step b { min-width: 38px; text-align: center; font-family: var(--font-display); font-size: 19px; }
+.seg { display: flex; gap: 5px; flex-wrap: wrap; }
+.seg button {
+  flex: 1 1 auto; min-height: 42px; padding: 9px 11px; border-radius: 11px; cursor: pointer;
+  font-family: inherit; font-size: 12px;
+  background: var(--card); border: 1px solid var(--line); color: var(--muted);
+}
+.seg button.on { color: var(--gold); border-color: var(--gold); }
+
+.confirm { text-align: center; }
+.confRing {
+  width: 72px; height: 72px; margin: 0 auto 14px; border-radius: 50%;
+  border: 2px solid var(--emerald); display: grid; place-items: center; color: var(--emerald);
+  box-shadow: 0 0 36px rgba(35,192,143,.4); animation: ringPop .7s cubic-bezier(.2,.9,.2,1.4);
+}
+@keyframes ringPop { from { transform: scale(.5); opacity: 0; } }
+.meter { font-size: 12px; color: var(--muted); }
+.privacyNote { font-size: 10.5px; color: var(--muted); opacity: .8; display: flex; gap: 6px; align-items: flex-start; }
+
+.emos { display: flex; gap: 6px; flex-wrap: wrap; }
+.emos button {
+  min-width: 44px; min-height: 44px; border-radius: 12px; cursor: pointer; font-size: 19px;
+  background: var(--card); border: 1px solid var(--line);
+}
+.wall { display: flex; flex-direction: column; gap: 8px; }
+.bless {
+  background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px;
+  animation: rise .5s ease both;
+}
+.bless p { font-family: var(--font-display); font-size: 14.5px; line-height: 1.5; }
+.bless b { display: block; margin-top: 6px; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--gold); font-weight: 400; }
+
+/* ── hero: Akshay → family → weds → Shraddha → family ─────────── */
+.couple { display: flex; flex-direction: column; gap: 12px; width: 100%; transition: opacity .4s; }
+.side { display: flex; flex-direction: column; gap: 2px; }
+.one {
+  font-size: clamp(38px, 13vw, 76px); line-height: 1.0; letter-spacing: -.015em;
+}
+.oneDev { font-size: clamp(15px, 4.6vw, 22px); color: var(--muted); margin-top: 1px; }
+.fam { font-size: clamp(11px, 3.1vw, 13px); color: var(--muted); line-height: 1.5; }
+.fam.dim { opacity: .72; }
+
+.weds { display: flex; align-items: center; gap: 12px; justify-content: center; margin: 2px 0; }
+.weds em {
+  font-style: italic; font-size: clamp(15px, 4.4vw, 21px);
+  color: var(--rose); letter-spacing: .04em;
+}
+.wline { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--line), transparent); }
+
+.venueLine { font-size: 12.5px; color: var(--ink); opacity: .9; }
+
+/* ── parivar act ─────────────────────────────────────────────── */
+.famCard {
+  background: rgba(255, 255, 255, .045); border: 1px solid var(--line);
+  border-radius: 14px; padding: 13px;
+}
+.viewport[data-theme='day'] .famCard { background: rgba(120, 80, 20, .06); }
+.famTag {
+  font-size: 9.5px; letter-spacing: .2em; text-transform: uppercase; color: var(--rose);
+}
+.famCard h3 { font-size: 18px; margin: 4px 0 6px; }
+.famCard p { font-size: 13px; color: var(--muted); }
+.famCard p.dim { opacity: .75; margin-top: 3px; }
+.famJoin {
+  text-align: center; font-family: var(--font-display); font-style: italic;
+  font-size: 13px; color: var(--gold); padding: 4px 0;
+}
+.ritualLead {
+  font-size: 10px; letter-spacing: .2em; text-transform: uppercase;
+  color: var(--muted); margin-top: 4px;
+}
+
+/* ── no gifts ────────────────────────────────────────────────── */
+.giftCard {
+  text-align: center; padding: 16px 14px; border-radius: 16px;
+  border: 1px solid var(--gold); color: var(--gold);
+  background: linear-gradient(160deg, rgba(227, 179, 65, .12), rgba(227, 179, 65, .03));
+}
+.giftCard h3 { font-size: 19px; margin: 7px 0 5px; color: var(--gold); }
+.giftCard p { font-size: 12.5px; color: var(--ink); opacity: .85; }
+.giftFoot { color: var(--gold); font-family: var(--font-display); font-style: italic; font-size: 13px; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   LIVE CEREMONY — the muhurat, for guests joining from afar
+   ═══════════════════════════════════════════════════════════════════ */
+.liveBar {
+  position: absolute; z-index: 9; left: 10px; right: 10px;
+  top: calc(58px + var(--safe-t));
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 10px 9px 12px; border-radius: 14px;
+  background: var(--glass); border: 1px solid var(--gold);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .4);
+  animation: rise .5s ease both;
+}
+.livePulse {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--rose); flex: 0 0 auto;
+  box-shadow: 0 0 0 0 var(--rose); animation: pulseDot 1.8s infinite;
+}
+@keyframes pulseDot {
+  70% { box-shadow: 0 0 0 9px rgba(255, 93, 143, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 93, 143, 0); }
+}
+.liveBarTxt { flex: 1; min-width: 0; line-height: 1.25; }
+.liveBarTxt b { display: block; font-size: 12.5px; color: var(--ink); }
+.liveBarTxt i { font-size: 10.5px; font-style: normal; color: var(--muted); }
+.btn.tiny { min-height: 36px; padding: 8px 12px; font-size: 12px; flex: 0 0 auto; }
+.liveX {
+  background: none; border: 0; color: var(--muted); cursor: pointer;
+  padding: 6px; display: grid; place-items: center;
+}
+
+.liveWrap {
+  position: absolute; inset: 0; z-index: 10;
+  display: grid; place-items: center; padding: 20px;
+  background: radial-gradient(circle at 50% 42%, rgba(60, 12, 40, .84), rgba(6, 8, 22, .96));
+  backdrop-filter: blur(10px);
+  animation: fadeIn .5s ease;
+}
+.liveClose {
+  position: absolute; top: calc(12px + var(--safe-t)); right: 14px;
+  width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
+  background: var(--card); border: 1px solid var(--line); color: var(--ink);
+  display: grid; place-items: center;
+}
+.liveInner { text-align: center; max-width: 460px; width: 100%; }
+.liveEyebrow {
+  font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: var(--rose);
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.liveClock {
+  font-size: clamp(52px, 20vw, 96px); color: var(--gold); line-height: 1;
+  letter-spacing: .02em; margin: 10px 0;
+}
+.liveTitle { font-size: clamp(26px, 9vw, 46px); color: var(--gold2); margin: 8px 0 4px; }
+.liveSub { font-size: 13.5px; color: var(--ink); opacity: .9; margin-bottom: 20px; }
+
+.akshataBtn {
+  width: 100%; padding: 20px 16px; border-radius: 22px; cursor: pointer;
+  font-family: inherit; color: #2a1704;
+  background: radial-gradient(circle at 50% 0%, #ffe9a8, var(--gold) 70%);
+  border: 0; box-shadow: 0 16px 44px rgba(227, 179, 65, .42);
+  transition: transform .09s ease, box-shadow .2s;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  animation: breathe 2.6s ease-in-out infinite;
+}
+.akshataBtn:active { transform: scale(.955); box-shadow: 0 8px 24px rgba(227, 179, 65, .5); }
+.akshataGrain { font-size: 30px; line-height: 1; }
+.akshataBtn b { font-size: 19px; font-weight: 600; }
+.akshataBtn i { font-size: 11.5px; font-style: normal; opacity: .8; }
+
+.liveCounts { display: flex; justify-content: center; gap: 22px; margin: 20px 0 14px; flex-wrap: wrap; }
+.liveCounts div { display: flex; flex-direction: column; }
+.liveCounts b { font-family: var(--font-display); font-size: 28px; color: var(--gold); line-height: 1.1; }
+.liveCounts span { font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.liveNote {
+  font-size: 11.5px; color: var(--muted);
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+
+@media (min-width: 820px) {
+  .liveBar { left: auto; right: 150px; width: 380px; top: 16px; }
+}
+
+`;
+
+/* ── lib/config.js ─────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════
    ✏️  EDIT ME — every name, date, venue and phone number lives here.
-   ════════════════════════════════════════════════════════════════════ */
+   Only real, confirmed details. Nothing invented.
+   ═══════════════════════════════════════════════════════════════════ */
+
 const CONFIG = {
   groom: {
     en: "Akshay", dev: "अक्षय", kan: "ಅಕ್ಷಯ್", surname: "Bankapure",
-    family: "the Bankapure parivaar, Belagavi",
+    family: "Bankapure parivaar",
     parents: "Son of Smt. Rupali Bankapure & Late Shri Ashok Bankapure",
+    siblings: "Brother of Nishchay, Shweta (Pramod Khot) & Divya (Sharad Tirth)",
   },
   bride: {
     en: "Shraddha", dev: "श्रद्धा", kan: "ಶ್ರದ್ಧಾ", surname: "Sangave",
-    family: "the Sangave parivaar, Kolhapur",
-    // ✏️ TODO: when ready, append " & Late Smt. <aai's name> Sangave" below
+    family: "Sangave parivaar",
+    // ✏️ TODO: append " & Late Smt. ______ Sangave" once the name is confirmed
     parents: "Daughter of Shri Babaso Sangave",
+    siblings: "",
   },
-  /* Heavenly blessings — shown in the footer.
-     ✏️ TODO: add Shraddha's late aai's name as a second entry, e.g.
-     "कै. सौ. ______ सांगवे · Late Smt. ______ Sangave" */
+
+  /* Heavenly blessings — footer. ✏️ TODO: add Shraddha's late aai here,
+     format: "कै. सौ. ______ सांगवे · Late Smt. ______ Sangave" */
   remembrance: ["कै. श्री. अशोक बंकापुरे · Late Shri Ashok Bankapure"],
-  siblings: "Nishchay · Shweta & Pramod Khot · Divya & Sharad Tirth",
-  familiesLine: "Bankapure · Magadum · Khot · Tirth × Sangave",
+  familiesLine: "Bankapure · Magadum · Khot · Tirth  ×  Sangave",
   hashtag: "#AkshayWedsShraddha",
-  weddingISO: "2026-08-09T11:47:00+05:30", // Shubh Muhurat
+
+  /* ✏️ TODO: replace with the real muhurat once the panchang is set. */
+  weddingISO: "2026-08-09T11:47:00+05:30",
   muhurtLabel: "Shubh Muhurat · 11:47 AM",
-  city: "Belagavi, Karnataka",
+
   venue: {
-    name: "Shri Mangal Lawns",
-    line: "Fort Road, Belagavi 590016",
-    mapsQuery: "Shri Mangal Lawns Fort Road Belagavi",
+    name: "Smt. Malini Patil Bhavan",
+    area: "Gavani, Belagavi district, Karnataka 591237",
+    maps: "https://maps.app.goo.gl/GxjJJJymxGeagx9YA",
+    q: "SMT. MALINI PATIL BHAVAN Gavani Karnataka",
+    /* From the venue itself — genuinely useful for guests */
+    note: "On a hill with ample parking. Dining hall on the ground floor, main hall one floor up.",
   },
-  hotel: "Hotel Sankam Residency (say “Shraddha–Akshay shaadi” for the blocked rate)",
-  contact: "RSVP helpline · +91 98XXX XXXXX (Nishchay — the groom's bhau & unofficial event manager)",
+  city: "Gavani, Belagavi",
+
+  /* ✏️ TODO: real number before sending this out. */
+  contact: "RSVP · +91 98XXX XXXXX (Nishchay Bankapure)",
+
+  giftNote: "Your presence is the gift.",
+  giftSub: "No gifts, please — we mean it. Come, eat well, bless us, dance a little.",
 };
 
+/* One day. Only the rituals that matter. */
 const EVENTS = [
   {
-    id: "haldi", emoji: "🪔", title: "Haldi", tag: "Turmeric threat level: maximum",
-    date: "2026-08-07", start: "10:00", end: "13:00", place: "Bankapure Residence courtyard",
-    dress: "Anything you're ready to sacrifice to haldi. Yellow earns bonus points.",
-    note: "Ukhaane optional, giggling mandatory.",
+    id: "haldi", emoji: "🪔", title: "Haldi",
+    tag: "Turmeric, laughter, ruined clothes",
+    date: "2026-08-09", start: "09:00", end: "10:30",
+    place: "Smt. Malini Patil Bhavan",
+    dress: "Something you're happy to sacrifice to haldi. Yellow earns bonus points.",
   },
   {
-    id: "mehendi", emoji: "🌿", title: "Mehendi", tag: "Free hand-art. Patience required.",
-    date: "2026-08-07", start: "16:00", end: "20:00", place: "Shri Mangal Lawns · Garden wing",
-    dress: "Greens & pastels. Sleeves you can roll up.",
-    note: "Chaha + kanda bhaji on loop (it's monsoon, obviously).",
+    id: "vivah", emoji: "💍", title: "Vivah Sohala",
+    tag: "The antarpat drops. This is the one.",
+    date: "2026-08-09", start: "11:00", end: "12:30",
+    place: "Smt. Malini Patil Bhavan · Main hall (first floor)",
+    dress: "Sarees & kurtas. Nauvari and saaj always welcome.",
   },
   {
-    id: "sangeet", emoji: "💃", title: "Sangeet", tag: "Lavani vs. bhajan-remix dance-off",
-    date: "2026-08-08", start: "19:00", end: "23:30", place: "Shri Mangal Lawns · Main hall",
-    dress: "Sparkle. The DJ has been warned about 'Nad Khula'.",
-    note: "Both aajis have rehearsed. Nobody is safe.",
-  },
-  {
-    id: "phere", emoji: "🐎", title: "Baraat · Granthi Bandhan · Phere", tag: "The main event",
-    date: "2026-08-09", start: "09:30", end: "12:30", place: "Shri Mangal Lawns · Mandap",
-    dress: "Sarees & kurtas. Nauvari + Kolhapuri saaj = front-row respect.",
-    note: "Mangalashtak at full family volume. Akshata will fly. Muhurat 11:47 AM sharp-ish.",
-  },
-  {
-    id: "bhojan", emoji: "🍛", title: "Grand Jain Bhojan", tag: "Kanda-lasun free. Flavor overloaded.",
-    date: "2026-08-09", start: "12:30", end: "15:00", place: "Shri Mangal Lawns · Bhojan hall",
-    dress: "Elastic waistbands are a valid cultural choice.",
-    note: "Unlimited jilebi. Shudh ghee. Zero compromise.",
-  },
-  {
-    id: "reception", emoji: "✨", title: "Reception", tag: "Kolhapuri spice meets Belagavi sweet",
-    date: "2026-08-09", start: "19:00", end: "22:30", place: "Shri Mangal Lawns · Lawns",
-    dress: "Smart festive. Kolhapuri chappals are dance-floor legal.",
-    note: "Belagavi Kunda counter closes only when the Kunda does.",
+    id: "bhojan", emoji: "🍛", title: "Bhojan",
+    tag: "Lunch at the venue. Come hungry.",
+    date: "2026-08-09", start: "12:30", end: "15:00",
+    place: "Smt. Malini Patil Bhavan · Dining hall (ground floor)",
+    dress: "Loose. Trust us.",
   },
 ];
 
-const STORY = [
-  {
-    y: "Once upon…", t: "Two kids, 120 km apart",
-    sweet: "One home began mornings with the Navkar Mantra; the other with aarti and a shamelessly loud bell. Both agreed on the essentials: Sundays mean sheera.",
-    spice: "He was the topper who feared haldi stains on his notebooks. She once traded homework answers for an extra pedha. Balance.",
-  },
-  {
-    y: "2019", t: "The Misal Summit, Kolhapur",
-    sweet: "She asked for extra tarri. He asked for “Jain misal, no kanda-lasun.” The waiter needed a moment of silence. So did he — she was laughing at him already.",
-    spice: "She judged his spice tolerance for exactly eleven seconds, then decided to marry it into shape.",
-  },
-  {
-    y: "2019–24", t: "Long distance, short patience",
-    sweet: "Pune ↔ Bengaluru. 4,217 video calls (approx.), two train apps, one shared playlist titled “halu halu”.",
-    spice: "NH-48 has witnessed more of this love story than both families combined.",
-  },
-  {
-    y: "2025", t: "The Yes ×2",
-    sweet: "He asked in Marathi. Then again in Kannada, for the Belagavi quorum. She said “Ho!” and “Howdu!” — motion passed unanimously.",
-    spice: "The ring was insured. The knees, tragically, were not.",
-  },
-  {
-    y: "2026", t: "Sweets were exchanged",
-    sweet: "Belagavi Kunda met Kolhapur pedha. Two families, one sugar rush, zero regrets.",
-    spice: "Both aajis are now locked in a silent, ghee-based arms race. Guests win either way.",
-  },
-];
-
+/* The rituals of the day, in order. */
 const RITUAL_CHIPS = [
-  "Navkar Mantra opening", "Mangalashtak — full family volume", "Antarpat & Akshata",
-  "Granthi Bandhan", "Saat Phere", "Aashirwad + one enormous group photo",
+  "Haldi", "Ganesh Puja", "Antarpat", "Mangalashtak", "Saat Phere", "Aashirwad", "Bhojan",
+];
+
+/* Bilingual phrases — each shown with its meaning, never as wordplay.
+   mr = Marathi · kn = Kannada */
+const PHRASES = [
+  { txt: "सुस्वागतम्", lang: "mr", mean: "welcome" },
+  { txt: "ಸುಸ್ವಾಗತ", lang: "kn", mean: "welcome" },
+  { txt: "हळू हळू", lang: "mr", mean: "slowly, slowly" },
+  { txt: "येता का मग?", lang: "mr", mean: "so, you're coming?" },
+  { txt: "ಬನ್ನಿ", lang: "kn", mean: "do come" },
+  { txt: "जेवण झालं का?", lang: "mr", mean: "have you eaten?" },
+  { txt: "ಊಟ ಆಯ್ತಾ?", lang: "kn", mean: "have you eaten?" },
+  { txt: "शुभमंगल सावधान", lang: "mr", mean: "the auspicious moment — be present" },
 ];
 
 const VIBES = [
-  { id: "dance", emoji: "🕺", title: "Nachnaar. Nad khula!", sub: "On the floor till 2 AM. DJ, brace yourself." },
-  { id: "food", emoji: "🍛", title: "Fakt jevayla yenar", sub: "Mainly here for the jevan. Honestly? Respect." },
-  { id: "phere", emoji: "🌸", title: "Phere-only professional", sub: "Muhurat, blessings, 400 photos, home by nap time." },
-  { id: "afar", emoji: "💛", title: "Wishing from afar", sub: "Can't make it — sending love. Laddoo courier expected." },
+  { id: "yes", emoji: "🙌", title: "Yes, all of it", sub: "Haldi, phere, bhojan. The full day." },
+  { id: "vivah", emoji: "💍", title: "Vivah & bhojan", sub: "There for the muhurat and lunch." },
+  { id: "short", emoji: "🌸", title: "Blessings, then off", sub: "In, blessed, photographed, gone." },
+  { id: "afar", emoji: "💛", title: "Wishing from afar", sub: "Can't travel — sending love and blessings." },
 ];
-const MEALS = ["Jain (no kanda-lasun)", "Regular veg", "Kolhapuri teekha 🌶️"];
+
+const MEALS = ["Jain (no kanda-lasun)", "Regular veg"];
 
 const SEED_BLESSINGS = [
-  { n: "Aaji", m: "Eat first, dance later. This is not a suggestion. 🙏", c: 0 },
-  { n: "Prakash Kaka", m: "ಶುಭಾಶಯಗಳು! Lai bhari jodi. Border-city approved. 🪔", c: 1 },
-  { n: "Cousin Rohan", m: "May your Wi-Fi be strong and your arguments short. ❤️", c: 2 },
-  { n: "Magadum Kaku", m: "May your love be like Kunda — slow-cooked, rich, impossible to stop at one serving. 🍯", c: 3 },
+  { id: "s1", txt: "Two families, one very happy day. Blessings to you both. 🪔", who: "Bankapure kaka" },
+  { id: "s2", txt: "सुखी संसार होवो! 🌸", who: "Sangave aatya" },
+  { id: "s3", txt: "See you on the hill in Gavani. Save us a seat near the food. 🍛", who: "Pune cousins" },
 ];
 
 const PINS = [
-  { id: "venue", x: 300, y: 240, icon: "★", label: "Shri Mangal Lawns", sub: "The venue · Fort Road, Belagavi", km: "You are needed here", q: CONFIG.venue.mapsQuery },
-  { id: "air", x: 150, y: 140, icon: "✈", label: "Belagavi Airport (IXG)", sub: "Sambra · direct from BLR, BOM, HYD", km: "≈ 10 km from venue", q: "Belagavi Airport" },
-  { id: "rail", x: 330, y: 330, icon: "🚉", label: "Belagavi Railway Stn", sub: "Rani Chennamma Exp fans, this is you", km: "≈ 4 km from venue", q: "Belagavi Railway Station" },
-  { id: "gokak", x: 565, y: 130, icon: "💧", label: "Gokak Falls", sub: "August = full monsoon flow. Go.", km: "≈ 60 km · day trip", q: "Gokak Falls" },
-  { id: "kolhapur", x: 645, y: 385, icon: "🛕", label: "Kolhapur", sub: "Mahalaxmi darshan, Rankala katta, chappal shopping", km: "≈ 2.5 hrs by road", q: "Mahalaxmi Temple Kolhapur" },
-  { id: "fort", x: 470, y: 280, icon: "🏰", label: "Belagavi Fort & Kamal Basadi", sub: "12th-century Jain basadi inside the fort", km: "≈ 3 km · morning walk", q: "Kamal Basadi Belagavi Fort" },
+  { id: "venue", label: "Smt. Malini Patil Bhavan", km: "Gavani · the whole day happens here",
+    q: "SMT. MALINI PATIL BHAVAN Gavani Karnataka",
+    note: "On a hill, ample parking. Dining hall downstairs, main hall upstairs." },
+  { id: "ixg", label: "Belagavi Airport (IXG)", km: "Nearest airport", q: "Belagavi Airport IXG" },
+  { id: "kop", label: "Kolhapur", km: "Nearest big city on the Maharashtra side", q: "Kolhapur Maharashtra" },
+  { id: "nippani", label: "Nippani", km: "Closest town for last-minute anything", q: "Nippani Karnataka" },
 ];
 
 const GUIDE = {
-  khaana: [
-    ["Belagavi Kunda", "Caramelised-milk magic. Buy two kilos. Thank us later."],
-    ["Mande", "Paper-thin, ghee-soaked sweet. Eaten with both hands and no dignity."],
-    ["Karadantu (Gokak)", "Edible souvenir. Survives flights, never survives the week."],
-    ["Misal", "Order 'medium' unless you've trained. 'Extra tarri' is a lifestyle."],
-    ["Cutting chai + kanda bhaji", "Monsoon's official pairing. Non-negotiable in August."],
+  pravaas: [
+    ["Fly", "Belagavi Airport (IXG) is the nearest. Kolhapur airport also works."],
+    ["Train", "Ghataprabha / Kudchi and Miraj are the usable railheads; road the rest of the way."],
+    ["Drive", "Right off the Pune–Bengaluru NH-48 corridor, near Nippani. Easiest way in."],
+    ["At the venue", "It's up a hill — there's plenty of parking at the top."],
   ],
   pehnava: [
-    ["Haldi", "Old kurta you can donate to turmeric. White = brave."],
-    ["Sangeet", "Sparkle first, comfort second — or Kolhapuri chappals and both."],
-    ["Wedding", "Sarees & kurtas. Nauvari + saaj = front-row respect at the mandap."],
-    ["Reception", "Smart festive. August drizzle is romantic; soggy mojaris are not — carry an umbrella."],
+    ["Haldi", "Old clothes. Turmeric does not negotiate."],
+    ["Vivah", "Sarees & kurtas. Nauvari and Kolhapuri saaj always look right."],
+    ["Weather", "August in this belt means sudden rain. Umbrella in the bag, chappals with grip."],
   ],
-  pravaas: [
-    ["Fly", "Belagavi Airport (IXG), ~25 min away. Kolhapur airport works too."],
-    ["Train", "Rani Chennamma Express from Bengaluru does the overnight classic."],
-    ["Drive", "Pune → Belagavi ≈ 5–6 hrs on NH-48. Ghat-section selfies are mandatory."],
-    ["Stay", CONFIG.hotel],
+  khaana: [
+    ["Bhojan", "Lunch is served at the venue, ground floor. Pure veg."],
+    ["Jain thali", "Available — just mark it in your RSVP so the kitchen knows."],
+    ["Belagavi Kunda", "If you're passing through Belagavi, buy some. Thank us later."],
   ],
   insider: [
-    ["Learn two phrases", "“Lai bhari!” (Marathi) and “Bhaari chennagide!” (Kannada). Instant family."],
-    ["“Jevan zala ka?”", "It's a greeting, not a catering audit. Correct answer: smile, say ho, eat again."],
-    ["Halu halu", "Means 'slowly' in Marathi and Kannada. The only speed limit this weekend."],
-    ["Monsoon rule", "Umbrella in bag, chappals with grip, heart fully open."],
+    ["Stairs", "Main hall is one floor up. Tell us in advance if anyone needs help with stairs."],
+    ["Halu halu", "Means 'slowly' in both Marathi and Kannada. The day's only speed limit."],
+    ["No gifts", "Genuinely. Your presence is the whole gift."],
   ],
 };
 
-/* ── tiny utilities ─────────────────────────────────────────────── */
+/* The acts of the single continuous flight. */
+const ACTS = [
+  { id: "antarpat", label: "Antarpat", sub: "the curtain" },
+  { id: "parivar", label: "Parivar", sub: "the families" },
+  { id: "muhurat", label: "Muhurat", sub: "the day" },
+  { id: "rasta", label: "Rasta", sub: "getting there" },
+  { id: "yeta", label: "Yeta ka?", sub: "rsvp" },
+  { id: "ashirwad", label: "Ashirwad", sub: "blessings" },
+];
+/* ── lib/helpers.js ─────────────────────────── */
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const pad2 = (n) => String(n).padStart(2, "0");
 const DAYNAME = { "2026-08-07": "Friday", "2026-08-08": "Saturday", "2026-08-09": "Sunday" };
 const prettyDate = (d) => `${DAYNAME[d] || ""} · ${d.slice(8)} Aug`;
 const to12h = (t) => { const [h, m] = t.split(":").map(Number); const ap = h >= 12 ? "PM" : "AM"; return `${((h + 11) % 12) + 1}:${pad2(m)} ${ap}`; };
 
+/* fx bus — the petal canvas registers a burst() so any component can
+   throw akshata + marigolds from a screen point. */
+const fx = { burst: null };
+/* ── lib/calendar.js ─────────────────────────── */
 const gcalStamp = (date, time) => `${date.replace(/-/g, "")}T${time.replace(":", "")}00`;
 const gcalUrl = (e) => {
   const p = new URLSearchParams({
@@ -200,30 +829,39 @@ const downloadICS = (e) => {
   a.href = url; a.download = `${e.id}-parshva-sayali.ics`; a.click();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 };
+/* ── lib/store.js ─────────────────────────── */
+/* Persistence adapter. Talks to the built-in /api/kv route (a JSON file
+   on the server — perfect for local dev and any Node host). If the API is
+   unreachable (e.g. a static export), it degrades to in-memory so the UI
+   keeps working. Swap the fetch calls for Supabase later without touching
+   any component. */
+const mem = new Map();
 
-/* Shared persistence — uses the artifact's window.storage when present
-   (blessings + RSVP tallies are shared across everyone viewing this
-   invite), and quietly falls back to in-memory state elsewhere. */
 const store = {
   async get(key, fallback) {
     try {
-      if (typeof window === "undefined" || !window.storage) return fallback;
-      const r = await window.storage.get(key, true);
-      return r && r.value ? JSON.parse(r.value) : fallback;
-    } catch { return fallback; }
+      const r = await fetch(`/api/kv?key=${encodeURIComponent(key)}`, { cache: "no-store" });
+      if (!r.ok) throw new Error(String(r.status));
+      const j = await r.json();
+      if (j.value === null || j.value === undefined)
+        return mem.has(key) ? mem.get(key) : fallback;
+      return j.value;
+    } catch {
+      return mem.has(key) ? mem.get(key) : fallback;
+    }
   },
-  async set(key, val) {
+  async set(key, value) {
+    mem.set(key, value);
     try {
-      if (typeof window === "undefined" || !window.storage) return;
-      await window.storage.set(key, JSON.stringify(val), true);
-    } catch { /* last-write-wins demo store; failures are non-fatal */ }
+      await fetch("/api/kv", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key, value }),
+      });
+    } catch { /* offline / static export — in-memory only */ }
   },
 };
-
-/* fx bus — the petal canvas registers a burst() so any component can
-   throw akshata + marigolds from a screen point. */
-const fx = { burst: null };
-
+/* ── lib/ambience.js ─────────────────────────── */
 /* Ambient soundscape — a synthesized tanpura-ish drone + temple bell,
    built on raw WebAudio so the invite ships with zero audio assets. */
 class Ambience {
@@ -275,956 +913,603 @@ class Ambience {
 /* ════════════════════════════════════════════════════════════════════
    DESIGN SYSTEM — silk-at-night default, haldi-ivory day theme.
    ════════════════════════════════════════════════════════════════════ */
-const CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Sora:wght@300;400;600&family=Tiro+Devanagari+Marathi:ital@0;1&display=swap');
+/* ── components/stage/Stage3D.jsx ─────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════
+   THE WORLD  —  art direction notes
+   ───────────────────────────────────────────────────────────────────
+   Six dioramas stacked down the Y axis; one camera flies through them.
+   The rules that keep it looking composed rather than "programmer art":
 
-.pswrap, .pswrap * { box-sizing: border-box; margin: 0; }
-.pswrap {
-  --bg: #0a0e24; --bg2: #131938; --ink: #f4ead6; --muted: #b6a688;
-  --gold: #e3b341; --gold2: #f7d87c; --rose: #ff5d8f; --emerald: #23c08f;
-  --maroon: #7c1f38; --card: rgba(21, 27, 56, 0.72); --line: rgba(227, 179, 65, 0.28);
-  --glow: 0 0 22px rgba(227,179,65,.35), 0 0 60px rgba(255,93,143,.12);
-  --silk: linear-gradient(160deg, #171c3f 0%, #0a0e24 55%, #191238 100%);
-  height: 100vh; height: 100dvh; overflow-y: auto; overflow-x: hidden;
-  background: var(--bg); color: var(--ink);
-  font-family: 'Sora', system-ui, sans-serif; font-weight: 300;
-  font-size: 16px; line-height: 1.6; scroll-behavior: smooth;
-  -webkit-font-smoothing: antialiased;
-}
-.pswrap[data-theme='day'] {
-  --bg: #f8f0dd; --bg2: #f1e5c9; --ink: #3c1220; --muted: #8a6a4e;
-  --gold: #a97c14; --gold2: #7c5a0a; --rose: #c2185b; --emerald: #0d7a5c;
-  --maroon: #7c1f38; --card: rgba(255, 252, 243, 0.82); --line: rgba(124, 31, 56, 0.25);
-  --glow: 0 10px 28px rgba(124,31,56,.12);
-  --silk: linear-gradient(160deg, #fdf6e6 0%, #f6ead0 55%, #f9efdc 100%);
-}
-.pswrap::-webkit-scrollbar { width: 10px; }
-.pswrap::-webkit-scrollbar-thumb { background: var(--line); border-radius: 8px; }
+   1. NOTHING sits closer to the camera than z = -4. All content lives
+      behind the glass panels, never in front of the text.
+   2. No solid primitives pretending to be objects (no box-with-wheels).
+      Landforms are layered paper-cut silhouettes; props are either
+      elegant lathe/torus forms or pure light.
+   3. Everything warm is emissive, so it never renders as a grey blob
+      when a light misses it.
+   4. Each zone has a framing offset so the camera composes it, instead
+      of flying through the middle of the geometry.
 
-.grain::after {
-  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 1; opacity: .07;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");
-}
-.display { font-family: 'Fraunces', Georgia, serif; font-weight: 400; }
-.dev { font-family: 'Tiro Devanagari Marathi', 'Noto Sans Devanagari', serif; }
-.goldtxt {
-  background: linear-gradient(100deg, var(--gold) 15%, var(--gold2) 40%, var(--gold) 65%, var(--gold2) 90%);
-  background-size: 220% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
-  animation: shimmer 7s ease-in-out infinite;
-}
-@keyframes shimmer { 0%,100% { background-position: 0% 0; } 50% { background-position: 100% 0; } }
+   All geometry is procedural — zero external models, zero textures.
+   Three.js is MIT. (To drop in real CC0 miniatures, see ARCHITECTURE.md
+   — the GLTF slot is already wired in the Next.js project.)
+   ═══════════════════════════════════════════════════════════════════ */
 
-.chapter { position: relative; min-height: 100vh; min-height: 100dvh; padding: clamp(84px, 12vh, 130px) clamp(20px, 6vw, 88px); display: flex; flex-direction: column; justify-content: center; z-index: 2; }
-.chapter.tight { min-height: 0; }
-.eyebrow { letter-spacing: .32em; text-transform: uppercase; font-size: 11px; color: var(--gold); font-weight: 600; }
-.h2 { font-size: clamp(30px, 5.2vw, 56px); line-height: 1.08; margin: 14px 0 10px; letter-spacing: -0.01em; }
-.lede { color: var(--muted); max-width: 620px; font-size: clamp(14px, 1.6vw, 17px); }
-.ornament { display: flex; align-items: center; gap: 14px; margin: 26px 0 34px; color: var(--gold); }
-.ornament::before, .ornament::after { content: ''; height: 1px; width: min(140px, 22vw); background: linear-gradient(90deg, transparent, var(--line)); }
-.ornament::after { background: linear-gradient(90deg, var(--line), transparent); }
+const GAP = 20;
+const ZONES = 6;
+const DEPTH = GAP * (ZONES - 1);
 
-/* reveal-on-scroll */
-.rv { opacity: 0; transform: translateY(28px); transition: opacity .9s cubic-bezier(.2,.7,.2,1), transform .9s cubic-bezier(.2,.7,.2,1); }
-.rv.in { opacity: 1; transform: none; }
-
-/* topbar + dot nav */
-.topbar { position: fixed; top: 0; left: 0; right: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between; padding: 14px clamp(16px, 4vw, 40px); backdrop-filter: blur(10px); background: linear-gradient(180deg, rgba(8,10,28,.55), transparent); }
-.pswrap[data-theme='day'] .topbar { background: linear-gradient(180deg, rgba(248,240,221,.7), transparent); }
-.mono { font-family: 'Fraunces', serif; font-style: italic; font-size: 20px; letter-spacing: .06em; color: var(--gold); }
-.iconbtn { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 999px; padding: 8px 14px; font: inherit; font-size: 12.5px; cursor: pointer; transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease; }
-.iconbtn:hover { transform: translateY(-1px); border-color: var(--gold); box-shadow: var(--glow); }
-.iconbtn:focus-visible, .btn:focus-visible, .chip:focus-visible, .vibe:focus-visible, .pinbtn:focus-visible { outline: 2px solid var(--rose); outline-offset: 3px; }
-.progress { position: fixed; top: 0; left: 0; height: 3px; background: linear-gradient(90deg, var(--gold), var(--rose)); z-index: 60; box-shadow: 0 0 12px rgba(255,93,143,.6); transition: width .15s linear; }
-.dots { position: fixed; right: 18px; top: 50%; transform: translateY(-50%); z-index: 50; display: flex; flex-direction: column; gap: 14px; }
-.dot { width: 9px; height: 9px; border-radius: 50%; border: 1px solid var(--gold); background: transparent; cursor: pointer; padding: 0; position: relative; transition: all .3s ease; }
-.dot.on { background: var(--gold); box-shadow: 0 0 12px var(--gold); transform: scale(1.35); }
-.dot span { position: absolute; right: 20px; top: 50%; transform: translateY(-50%); white-space: nowrap; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); opacity: 0; transition: opacity .25s; pointer-events: none; }
-.dot:hover span { opacity: 1; }
-
-/* hero + antarpat */
-.heroTrack { height: 280vh; position: relative; }
-.heroPin { position: sticky; top: 0; height: 100vh; height: 100dvh; overflow: hidden; display: grid; place-items: center; background: var(--silk); }
-.mandala { position: absolute; width: min(120vmin, 900px); opacity: .16; animation: spinSlow 140s linear infinite; }
-@keyframes spinSlow { to { transform: rotate(360deg); } }
-.heroInner { position: relative; z-index: 5; text-align: center; padding: 0 22px; }
-.invok { font-size: clamp(11px, 1.4vw, 14px); letter-spacing: .12em; color: var(--gold); }
-.names { font-size: clamp(46px, 11vw, 128px); line-height: 1.02; letter-spacing: -0.015em; margin: 18px 0 6px; }
-.names .amp { font-style: italic; color: var(--rose); font-size: .55em; vertical-align: middle; padding: 0 .12em; text-shadow: 0 0 24px rgba(255,93,143,.55); }
-.namesDev { font-size: clamp(18px, 3vw, 30px); color: var(--muted); }
-.namesKan { font-size: clamp(13px, 1.8vw, 17px); color: var(--muted); opacity: .85; margin-top: 4px; }
-.dateRow { display: flex; align-items: baseline; justify-content: center; gap: clamp(10px, 2.4vw, 22px); margin: 30px 0 8px; }
-.dateNum { font-size: clamp(40px, 7.5vw, 84px); color: var(--gold); }
-.dateDot { color: var(--rose); font-size: clamp(20px, 3vw, 34px); }
-.muhurt { color: var(--muted); font-size: clamp(12px, 1.5vw, 15px); letter-spacing: .1em; }
-.heroCtas { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 26px; }
-.scrollcue { position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%); z-index: 6; display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--muted); font-size: 11.5px; letter-spacing: .18em; text-transform: uppercase; animation: bob 2.6s ease-in-out infinite; }
-@keyframes bob { 0%,100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, 8px); } }
-
-.curtain { position: absolute; inset: 0; z-index: 20; pointer-events: none; }
-.cloth { position: absolute; top: 0; bottom: 0; width: 51%; will-change: transform;
-  background:
-    radial-gradient(120% 60% at 50% -10%, rgba(255,255,255,.08), transparent 60%),
-    repeating-linear-gradient(93deg, rgba(255,255,255,.05) 0 2px, transparent 2px 9px),
-    linear-gradient(180deg, #8e2440 0%, #6d1830 52%, #521026 100%);
-  box-shadow: inset 0 0 90px rgba(0,0,0,.5);
-}
-.cloth.L { left: -0.6%; border-right: 14px solid transparent; border-image: repeating-linear-gradient(45deg, var(--gold) 0 9px, #521026 9px 18px) 14; }
-.cloth.R { right: -0.6%; border-left: 14px solid transparent; border-image: repeating-linear-gradient(-45deg, var(--gold) 0 9px, #521026 9px 18px) 14; }
-.tassels { position: absolute; bottom: -16px; left: 0; right: 0; display: flex; justify-content: space-around; }
-.tassels i { width: 3px; height: 26px; background: var(--gold); border-radius: 2px; display: block; transform-origin: top; animation: sway 3.4s ease-in-out infinite; box-shadow: 0 0 8px rgba(227,179,65,.5); }
-.tassels i:nth-child(2n) { animation-delay: .7s; height: 32px; }
-@keyframes sway { 0%,100% { transform: rotate(-6deg);} 50% { transform: rotate(6deg);} }
-.clothText { position: absolute; inset: 0; z-index: 21; display: grid; place-items: center; text-align: center; color: #f6e3c0; pointer-events: none; padding: 0 20px; }
-.clothText .big { font-size: clamp(24px, 5vw, 52px); text-shadow: 0 2px 24px rgba(0,0,0,.6); }
-.clothText .small { letter-spacing: .3em; text-transform: uppercase; font-size: 11px; opacity: .85; margin-top: 12px; }
-
-/* buttons + chips + cards */
-.btn { display: inline-flex; align-items: center; gap: 9px; padding: 12px 20px; border-radius: 999px; border: 1px solid var(--gold); background: linear-gradient(120deg, rgba(227,179,65,.16), rgba(255,93,143,.10)); color: var(--ink); font: inherit; font-size: 14px; font-weight: 400; cursor: pointer; transition: transform .25s ease, box-shadow .25s ease; text-decoration: none; }
-.btn:hover { transform: translateY(-2px) scale(1.015); box-shadow: var(--glow); }
-.btn.solid { background: linear-gradient(120deg, var(--gold), #c98f1f); color: #241004; font-weight: 600; border-color: transparent; }
-.btn.ghost { background: transparent; border-color: var(--line); }
-.chip { display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); font-size: 12.5px; color: var(--ink); cursor: default; }
-.card { background: var(--card); border: 1px solid var(--line); border-radius: 22px; backdrop-filter: blur(10px); box-shadow: 0 18px 50px rgba(0,0,0,.22); }
-.pswrap[data-theme='day'] .card { box-shadow: 0 14px 40px rgba(124,31,56,.08); }
-
-/* diya */
-.diya { position: absolute; width: 46px; z-index: 6; filter: drop-shadow(0 0 14px rgba(255,170,60,.55)); }
-.flame { transform-origin: 50% 90%; animation: flick 1.7s ease-in-out infinite; }
-.flame.f2 { animation-duration: 2.3s; animation-delay: .4s; }
-@keyframes flick { 0%,100% { transform: scaleY(1) rotate(-2deg); opacity: .95; } 30% { transform: scaleY(1.18) rotate(2deg); opacity: 1; } 60% { transform: scaleY(.9) rotate(-1.5deg); opacity: .88; } }
-
-@media (max-width: 760px) {
-  .dots { display: none; }
-  .chapter { padding-left: 20px; padding-right: 20px; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .pswrap * { animation: none !important; transition-duration: .01ms !important; }
-  .pswrap { scroll-behavior: auto; }
-}
-`;
-
-const CSS2 = `
-/* story timeline */
-.mode { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 4px; gap: 4px; background: var(--card); }
-.mode button { border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 13px; padding: 8px 16px; border-radius: 999px; cursor: pointer; transition: all .3s ease; }
-.mode button.on { background: linear-gradient(120deg, var(--gold), #c98f1f); color: #241004; font-weight: 600; box-shadow: 0 4px 16px rgba(227,179,65,.35); }
-.tl { position: relative; margin-top: 44px; }
-.tl::before { content: ''; position: absolute; left: 18px; top: 6px; bottom: 6px; width: 2px; background: linear-gradient(180deg, var(--gold), var(--rose), var(--emerald)); opacity: .5; }
-.tlItem { position: relative; padding: 0 0 34px 58px; }
-.tlItem::before { content: ''; position: absolute; left: 11px; top: 4px; width: 16px; height: 16px; border-radius: 50%; background: var(--bg); border: 2px solid var(--gold); box-shadow: 0 0 14px rgba(227,179,65,.6); }
-.tlYear { font-size: 12px; letter-spacing: .22em; text-transform: uppercase; color: var(--rose); font-weight: 600; }
-.tlTitle { font-size: clamp(20px, 2.6vw, 27px); margin: 4px 0 6px; }
-.tlBody { color: var(--muted); max-width: 640px; min-height: 3.2em; transition: opacity .35s ease; }
-.tlBody.swap { opacity: 0; }
-@media (min-width: 900px) {
-  .tl::before { left: 50%; }
-  .tlItem { width: 50%; padding: 0 48px 46px 0; text-align: right; }
-  .tlItem:nth-child(even) { margin-left: 50%; padding: 0 0 46px 48px; text-align: left; }
-  .tlItem::before { left: auto; right: -9px; }
-  .tlItem:nth-child(even)::before { right: auto; left: -9px; }
-  .tlItem .tlBody { margin-left: auto; }
-  .tlItem:nth-child(even) .tlBody { margin-left: 0; }
-}
-
-/* itinerary */
-.grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); margin-top: 40px; }
-.event { padding: 24px; display: flex; flex-direction: column; gap: 10px; position: relative; overflow: hidden; transition: transform .35s cubic-bezier(.2,.7,.2,1), box-shadow .35s ease; }
-.event:hover { transform: translateY(-6px); box-shadow: 0 26px 60px rgba(0,0,0,.35), 0 0 0 1px var(--gold) inset; }
-.event .emoji { font-size: 32px; filter: drop-shadow(0 0 12px rgba(255,170,60,.4)); }
-.event h3 { font-size: 21px; }
-.event .tag { color: var(--rose); font-size: 13px; font-style: italic; font-family: 'Fraunces', serif; }
-.meta { display: flex; flex-wrap: wrap; gap: 8px 16px; color: var(--muted); font-size: 13px; align-items: center; }
-.meta svg { color: var(--gold); }
-.evBtns { display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
-.evBtns .btn { padding: 8px 14px; font-size: 12.5px; }
-.dressline { font-size: 12.5px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 10px; }
-
-/* countdown */
-.count { display: flex; gap: clamp(10px, 2.4vw, 22px); flex-wrap: wrap; margin: 30px 0 12px; }
-.tile { min-width: clamp(74px, 10vw, 112px); padding: 16px 10px 12px; text-align: center; border-radius: 18px; border: 1px solid var(--line); background: var(--card); position: relative; overflow: hidden; }
-.tile::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255,255,255,.06), transparent 45%); pointer-events: none; }
-.tile b { display: block; font-family: 'Fraunces', serif; font-weight: 500; font-size: clamp(30px, 5vw, 52px); color: var(--gold); line-height: 1; animation: pop .5s ease; }
-@keyframes pop { from { transform: translateY(6px); opacity: .3; } to { transform: none; opacity: 1; } }
-.tile span { font-size: 10.5px; letter-spacing: .24em; text-transform: uppercase; color: var(--muted); }
-.humor { color: var(--muted); font-size: 14px; font-style: italic; font-family: 'Fraunces', serif; }
-.humor b { color: var(--gold); font-weight: 500; }
-
-/* map + guide */
-.venueGrid { display: grid; gap: 26px; grid-template-columns: 1.25fr 1fr; align-items: start; margin-top: 36px; }
-@media (max-width: 980px) { .venueGrid { grid-template-columns: 1fr; } }
-.mapCard { padding: 14px; }
-.mapSvg { width: 100%; height: auto; display: block; border-radius: 14px; }
-.pinbtn { cursor: pointer; }
-.pinPulse { animation: pinPulse 2.2s ease-out infinite; transform-origin: center; transform-box: fill-box; }
-@keyframes pinPulse { 0% { transform: scale(.6); opacity: .8; } 100% { transform: scale(2.1); opacity: 0; } }
-.dash { stroke-dasharray: 7 8; animation: dashmove 26s linear infinite; }
-@keyframes dashmove { to { stroke-dashoffset: -600; } }
-.drop { animation: rainDrop 1.6s linear infinite; }
-.drop.d2 { animation-delay: .5s; } .drop.d3 { animation-delay: 1s; }
-@keyframes rainDrop { 0% { transform: translateY(0); opacity: 0; } 25% { opacity: .8; } 100% { transform: translateY(26px); opacity: 0; } }
-.pinInfo { padding: 20px 22px; margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
-.tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
-.tabs button { border: 1px solid var(--line); background: var(--card); color: var(--muted); border-radius: 999px; padding: 9px 16px; font: inherit; font-size: 13px; cursor: pointer; display: inline-flex; gap: 8px; align-items: center; transition: all .3s ease; }
-.tabs button.on { color: var(--ink); border-color: var(--gold); box-shadow: var(--glow); background: linear-gradient(120deg, rgba(227,179,65,.18), rgba(255,93,143,.1)); }
-.guideRow { display: grid; grid-template-columns: 150px 1fr; gap: 6px 18px; padding: 13px 4px; border-bottom: 1px dashed var(--line); font-size: 14px; }
-.guideRow b { color: var(--gold); font-weight: 600; font-size: 13.5px; }
-.guideRow span { color: var(--muted); }
-@media (max-width: 560px) { .guideRow { grid-template-columns: 1fr; } }
-
-/* rsvp */
-.vibes { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin: 30px 0; }
-.vibe { text-align: left; padding: 18px; border-radius: 18px; border: 1px solid var(--line); background: var(--card); color: var(--ink); font: inherit; cursor: pointer; transition: all .3s cubic-bezier(.2,.7,.2,1); position: relative; }
-.vibe:hover { transform: translateY(-4px); border-color: var(--gold); }
-.vibe.on { border-color: var(--rose); box-shadow: 0 0 0 1px var(--rose), 0 0 30px rgba(255,93,143,.28); transform: translateY(-4px) scale(1.01); }
-.vibe .ve { font-size: 26px; }
-.vibe h4 { margin: 8px 0 4px; font-size: 16px; }
-.vibe p { color: var(--muted); font-size: 12.5px; line-height: 1.5; }
-.vibe .tick { position: absolute; top: 12px; right: 12px; width: 22px; height: 22px; border-radius: 50%; background: var(--rose); display: grid; place-items: center; color: white; opacity: 0; transform: scale(.4); transition: all .3s ease; }
-.vibe.on .tick { opacity: 1; transform: scale(1); }
-.field { display: flex; flex-direction: column; gap: 8px; }
-.field label { font-size: 11.5px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); }
-.input { background: var(--card); border: 1px solid var(--line); color: var(--ink); border-radius: 14px; padding: 13px 16px; font: inherit; font-size: 14.5px; width: 100%; transition: border-color .25s, box-shadow .25s; }
-.input:focus { outline: none; border-color: var(--gold); box-shadow: var(--glow); }
-.formRow { display: grid; gap: 18px; grid-template-columns: 1.4fr 1fr; align-items: end; margin-bottom: 18px; }
-@media (max-width: 700px) { .formRow { grid-template-columns: 1fr; } }
-.step { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
-.step button { border: 0; background: transparent; color: var(--gold); width: 44px; height: 46px; cursor: pointer; display: grid; place-items: center; }
-.step b { min-width: 40px; text-align: center; font-family: 'Fraunces', serif; font-size: 20px; font-weight: 500; }
-.seg { display: flex; flex-wrap: wrap; gap: 8px; }
-.seg button { border: 1px solid var(--line); background: var(--card); color: var(--muted); border-radius: 999px; padding: 9px 15px; font: inherit; font-size: 12.5px; cursor: pointer; transition: all .25s ease; }
-.seg button.on { color: var(--ink); border-color: var(--emerald); box-shadow: 0 0 16px rgba(35,192,143,.3); }
-.confirm { text-align: center; padding: 46px 26px; animation: confIn .8s cubic-bezier(.2,.9,.25,1.2); }
-@keyframes confIn { from { transform: scale(.86); opacity: 0; } to { transform: none; opacity: 1; } }
-.confRing { width: 84px; height: 84px; margin: 0 auto 18px; border-radius: 50%; border: 2px solid var(--emerald); display: grid; place-items: center; color: var(--emerald); box-shadow: 0 0 40px rgba(35,192,143,.4); animation: ringPop .7s cubic-bezier(.2,.9,.2,1.4); }
-@keyframes ringPop { 0% { transform: scale(0) rotate(-40deg); } 70% { transform: scale(1.15); } 100% { transform: scale(1); } }
-.meter { font-size: 13px; color: var(--muted); margin-top: 16px; }
-.meter b { color: var(--gold); }
-
-/* blessings wall */
-.wall { column-count: 3; column-gap: 18px; margin-top: 30px; }
-@media (max-width: 980px) { .wall { column-count: 2; } }
-@media (max-width: 620px) { .wall { column-count: 1; } }
-.bless { break-inside: avoid; margin: 0 0 18px; padding: 20px 20px 16px; position: relative; animation: blessIn .6s cubic-bezier(.2,.8,.2,1.1); }
-@keyframes blessIn { from { transform: translateY(18px) scale(.96); opacity: 0; } to { transform: none; opacity: 1; } }
-.bless::before { content: '❁'; position: absolute; top: -10px; left: 50%; transform: translateX(-50%); color: var(--gold); font-size: 15px; text-shadow: 0 0 10px rgba(227,179,65,.7); }
-.bless:nth-child(3n) { transform: rotate(.7deg); } .bless:nth-child(3n+1) { transform: rotate(-.6deg); }
-.bless p { font-family: 'Fraunces', serif; font-size: 15.5px; line-height: 1.55; }
-.bless span { display: block; margin-top: 10px; font-size: 11.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--rose); }
-.emos { display: flex; gap: 8px; flex-wrap: wrap; }
-.emos button { border: 1px solid var(--line); background: var(--card); border-radius: 12px; font-size: 18px; padding: 7px 11px; cursor: pointer; transition: transform .2s ease; }
-.emos button:hover { transform: translateY(-3px) scale(1.12); }
-.privacyNote { font-size: 11.5px; color: var(--muted); opacity: .85; }
-
-.footer { text-align: center; padding: 70px 20px 90px; color: var(--muted); font-size: 13.5px; position: relative; z-index: 2; }
-.footer .display { color: var(--gold); font-size: 22px; font-style: italic; }
-
-/* ── modern effects layer ─────────────────────────────────────── */
-@property --ang { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
-.sheen { position: relative; }
-.sheen::before {
-  content: ''; position: absolute; inset: -1px; border-radius: inherit; padding: 1px;
-  background: conic-gradient(from var(--ang), transparent 0 38%, rgba(247,216,124,.85) 50%, transparent 62% 100%);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor; mask-composite: exclude;
-  animation: spinAng 7s linear infinite; pointer-events: none;
-}
-@keyframes spinAng { to { --ang: 360deg; } }
-
-.shimmer {
-  background: linear-gradient(108deg, var(--gold) 22%, #fff3c8 42%, var(--gold) 62%);
-  background-size: 220% 100%; -webkit-background-clip: text; background-clip: text;
-  color: transparent; animation: shim 5.5s ease-in-out infinite;
-}
-@keyframes shim { 0% { background-position: 130% 0; } 100% { background-position: -130% 0; } }
-
-.lt { display: inline-block; opacity: 0; transform: translateY(.55em) rotate(6deg); }
-.ltsIn .lt { animation: ltIn .7s cubic-bezier(.2, .9, .25, 1.25) forwards; animation-delay: calc(var(--i) * 60ms); }
-@keyframes ltIn { to { opacity: 1; transform: none; } }
-
-.marq { overflow: hidden; border-block: 1px solid var(--line); padding: 13px 0; margin: 8px 0; }
-.marq .inner { display: flex; gap: 44px; width: max-content; animation: marq 28s linear infinite; }
-.marq span { white-space: nowrap; font-family: 'Fraunces', serif; font-style: italic;
-  color: var(--muted); letter-spacing: .14em; text-transform: uppercase; font-size: 12.5px; }
-@keyframes marq { to { transform: translateX(-50%); } }
-
-.rangoli { display: block; margin: 6px auto; width: min(560px, 82%); overflow: visible; }
-.rangoli path { fill: none; stroke: var(--gold); stroke-width: 1.5; stroke-linecap: round;
-  stroke-dasharray: 1; stroke-dashoffset: 1; opacity: .85; }
-.rangoli.draw path { transition: stroke-dashoffset 1.5s cubic-bezier(.4, 0, .2, 1); stroke-dashoffset: 0; }
-.rangoli .dot { fill: var(--rose); opacity: 0; transition: opacity .6s ease 1s; }
-.rangoli.draw .dot { opacity: .9; }
-
-.lotus { display: block; margin: 2px auto; }
-.lotus .pet { fill: var(--rose); opacity: .92; transform-origin: 66px 84px; transform: scale(.06);
-  animation: petBloom .85s cubic-bezier(.2, .8, .3, 1.18) forwards; }
-.lotus .lcore { fill: var(--gold2); opacity: 0; animation: fadeCore .5s ease 1s forwards; }
-.lotus .lbase { fill: var(--emerald); opacity: .8; }
-@keyframes petBloom { to { transform: scale(1); } }
-@keyframes fadeCore { to { opacity: 1; } }
-
-.tilt { position: relative; transform-style: preserve-3d; will-change: transform;
-  transform: perspective(950px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
-  transition: transform .18s ease; }
-.tilt .glare { position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
-  background: radial-gradient(320px circle at var(--gx, 50%) var(--gy, 50%), rgba(255, 240, 200, .16), transparent 55%);
-  opacity: var(--go, 0); transition: opacity .3s ease; }
-
-.cglow { position: fixed; left: 0; top: 0; width: 340px; height: 340px; border-radius: 50%;
-  pointer-events: none; z-index: 2; mix-blend-mode: screen; filter: blur(6px);
-  background: radial-gradient(circle, rgba(247, 216, 124, .13), rgba(255, 93, 143, .05) 45%, transparent 70%); }
-[data-theme='day'] .cglow { mix-blend-mode: multiply; opacity: .5; }
-
-.vineWrap { position: absolute; left: 50%; top: 0; height: 100%; width: 70px;
-  transform: translateX(-50%); pointer-events: none; }
-.vineWrap svg { width: 100%; height: 100%; overflow: visible; }
-.vineWrap path { stroke: var(--gold); stroke-width: 2; fill: none; opacity: .8;
-  filter: drop-shadow(0 0 6px rgba(227, 179, 65, .4)); }
-@media (max-width: 900px) { .vineWrap { display: none; } }
-
-.embroid { position: absolute; left: 4%; right: 4%; bottom: 16px; height: 26px; opacity: .9; }
-.embroid path { stroke: var(--gold2); fill: none; stroke-width: 1.3; stroke-linecap: round;
-  stroke-dasharray: 1; stroke-dashoffset: 1; animation: emb 2.4s .5s ease forwards; }
-@keyframes emb { to { stroke-dashoffset: 0; } }
-`;
-
-/* ════════════════════════════════════════════════════════════════════
-   DECOR + ENGINE COMPONENTS
-   ════════════════════════════════════════════════════════════════════ */
-const Mandala = ({ style }) => (
-  <svg className="mandala" style={style} viewBox="0 0 400 400" aria-hidden="true">
-    <g fill="none" stroke="var(--gold)" strokeWidth="0.8">
-      <circle cx="200" cy="200" r="196" opacity=".5" />
-      <circle cx="200" cy="200" r="150" opacity=".6" />
-      <circle cx="200" cy="200" r="96" opacity=".7" />
-      {Array.from({ length: 24 }).map((_, i) => {
-        const a = (i * Math.PI) / 12;
-        const x1 = 200 + Math.cos(a) * 96, y1 = 200 + Math.sin(a) * 96;
-        const x2 = 200 + Math.cos(a) * 196, y2 = 200 + Math.sin(a) * 196;
-        return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} opacity=".35" />;
-      })}
-      {Array.from({ length: 12 }).map((_, i) => {
-        const a = (i * Math.PI) / 6;
-        const cx = 200 + Math.cos(a) * 150, cy = 200 + Math.sin(a) * 150;
-        return <ellipse key={i} cx={cx} cy={cy} rx="26" ry="11"
-          transform={`rotate(${(i * 30) + 90} ${cx} ${cy})`} opacity=".55" />;
-      })}
-      <path d="M200 118 C 218 146, 218 162, 200 178 C 182 162, 182 146, 200 118 Z" opacity=".8" />
-      <path d="M200 282 C 218 254, 218 238, 200 222 C 182 238, 182 254, 200 282 Z" opacity=".8" />
-      <path d="M118 200 C 146 182, 162 182, 178 200 C 162 218, 146 218, 118 200 Z" opacity=".8" />
-      <path d="M282 200 C 254 182, 238 182, 222 200 C 238 218, 254 218, 282 200 Z" opacity=".8" />
-    </g>
-  </svg>
-);
-
-const Diya = ({ style, slow }) => (
-  <svg className="diya" style={style} viewBox="0 0 60 60" aria-hidden="true">
-    <ellipse cx="30" cy="46" rx="20" ry="8" fill="var(--maroon)" stroke="var(--gold)" strokeWidth="1.4" />
-    <ellipse cx="30" cy="43" rx="14" ry="4.5" fill="#3a0d18" />
-    <g className={slow ? "flame f2" : "flame"}>
-      <path d="M30 18 C 36 27, 35 34, 30 38 C 25 34, 24 27, 30 18 Z" fill="#ffb347" />
-      <path d="M30 24 C 33 29, 33 33, 30 36 C 27 33, 27 29, 30 24 Z" fill="#ffe9a8" />
-    </g>
-  </svg>
-);
-
-/* Petal + akshata particle engine — marigold petals drift ambiently,
-   grains + petals burst on demand via fx.burst(x, y). */
-function PetalCanvas({ reduced }) {
-  const ref = useRef(null);
-  useEffect(() => {
-    if (reduced) return;
-    const cv = ref.current; const ctx = cv.getContext("2d");
-    let W = 0, H = 0, raf = 0, parts = [], mouse = { x: -999, y: -999 };
-    const DPR = Math.min(window.devicePixelRatio || 1, 2);
-    const resize = () => { W = window.innerWidth; H = window.innerHeight; cv.width = W * DPR; cv.height = H * DPR; cv.style.width = W + "px"; cv.style.height = H + "px"; ctx.setTransform(DPR, 0, 0, DPR, 0, 0); };
-    resize(); window.addEventListener("resize", resize);
-    const PALETTE = ["#f2a33c", "#e8842c", "#f6c25a", "#e26a4a", "#ffd98e"];
-    const petal = (burst, x, y) => ({
-      x: burst ? x : Math.random() * W, y: burst ? y : -20 - Math.random() * H * 0.3,
-      vx: burst ? (Math.random() - 0.5) * 7 : (Math.random() - 0.5) * 0.5,
-      vy: burst ? -(2 + Math.random() * 6) : 0.4 + Math.random() * 0.8,
-      rot: Math.random() * Math.PI * 2, vr: (Math.random() - 0.5) * 0.06,
-      s: 5 + Math.random() * 7, c: PALETTE[(Math.random() * PALETTE.length) | 0],
-      sway: Math.random() * Math.PI * 2, life: 1, type: "petal", burst,
-    });
-    const grain = (x, y) => ({
-      x, y, vx: (Math.random() - 0.5) * 9, vy: -(3 + Math.random() * 7),
-      rot: Math.random() * Math.PI, vr: (Math.random() - 0.5) * 0.3,
-      s: 2 + Math.random() * 1.6, c: Math.random() > 0.4 ? "#fff3d6" : "#f4c445",
-      life: 1, type: "grain", burst: true,
-    });
-    const AMBIENT = W < 640 ? 20 : 34;
-    for (let i = 0; i < AMBIENT; i++) { const p = petal(false); p.y = Math.random() * H; parts.push(p); }
-    fx.burst = (x = W / 2, y = H / 2) => {
-      for (let i = 0; i < 26; i++) parts.push(petal(true, x, y));
-      for (let i = 0; i < 70; i++) parts.push(grain(x, y));
-    };
-    const onMove = (e) => { const t = e.touches ? e.touches[0] : e; mouse.x = t.clientX; mouse.y = t.clientY; };
-    window.addEventListener("pointermove", onMove, { passive: true });
-    let hidden = false;
-    const onVis = () => { hidden = document.hidden; };
-    document.addEventListener("visibilitychange", onVis);
-    const tick = () => {
-      raf = requestAnimationFrame(tick);
-      if (hidden) return;
-      ctx.clearRect(0, 0, W, H);
-      for (let i = parts.length - 1; i >= 0; i--) {
-        const p = parts[i];
-        if (p.type === "grain") { p.vy += 0.22; p.life -= 0.012; }
-        else if (p.burst) { p.vy += 0.12; p.vx *= 0.985; p.life -= 0.006; }
-        else { p.sway += 0.015; p.vx += Math.sin(p.sway) * 0.008; p.vx *= 0.99; }
-        const dx = p.x - mouse.x, dy = p.y - mouse.y, d2 = dx * dx + dy * dy;
-        if (d2 < 8100) { const d = Math.sqrt(d2) || 1; p.vx += (dx / d) * 0.35; p.vy += (dy / d) * 0.2; }
-        p.x += p.vx; p.y += p.vy; p.rot += p.vr;
-        if (!p.burst && (p.y > H + 24 || p.x < -30 || p.x > W + 30)) { parts[i] = petal(false); continue; }
-        if (p.burst && (p.life <= 0 || p.y > H + 30)) { parts.splice(i, 1); continue; }
-        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
-        ctx.globalAlpha = Math.min(1, p.life) * (p.type === "grain" ? 0.95 : 0.8);
-        ctx.fillStyle = p.c;
-        if (p.type === "grain") { ctx.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2); }
-        else {
-          ctx.beginPath();
-          ctx.moveTo(0, -p.s);
-          ctx.quadraticCurveTo(p.s * 0.9, -p.s * 0.2, 0, p.s);
-          ctx.quadraticCurveTo(-p.s * 0.9, -p.s * 0.2, 0, -p.s);
-          ctx.fill();
-        }
-        ctx.restore();
-      }
-    };
-    tick();
-    return () => {
-      cancelAnimationFrame(raf); fx.burst = null;
-      window.removeEventListener("resize", resize);
-      window.removeEventListener("pointermove", onMove);
-      document.removeEventListener("visibilitychange", onVis);
-    };
-  }, [reduced]);
-  if (reduced) return null;
-  return <canvas ref={ref} aria-hidden="true"
-    style={{ position: "fixed", inset: 0, zIndex: 3, pointerEvents: "none" }} />;
-}
-
-/* Reveal wrapper — fades chapters/blocks in on first viewport entry. */
-
-/* ── 3D layer · Three.js r128 (MIT) — everything below is procedural
-      geometry + shaders authored in code: zero external models or
-      textures, zero asset licences. ── */
-
-function makeGlowTex(inner = "255,214,140", mid = "255,170,80") {
-  const c = document.createElement("canvas"); c.width = c.height = 64;
+function radialTex(inner, mid) {
+  const c = document.createElement("canvas"); c.width = c.height = 128;
   const g = c.getContext("2d");
-  const rg = g.createRadialGradient(32, 32, 2, 32, 32, 31);
-  rg.addColorStop(0, `rgba(${inner},0.95)`);
-  rg.addColorStop(0.4, `rgba(${mid},0.45)`);
+  const rg = g.createRadialGradient(64, 64, 2, 64, 64, 62);
+  rg.addColorStop(0, `rgba(${inner},1)`);
+  rg.addColorStop(.35, `rgba(${mid},.55)`);
   rg.addColorStop(1, `rgba(${mid},0)`);
-  g.fillStyle = rg; g.fillRect(0, 0, 64, 64);
+  g.fillStyle = rg; g.fillRect(0, 0, 128, 128);
   return new THREE.CanvasTexture(c);
 }
 
-/* Animated jewel-tone "silk nebula" backdrop — a single quad running a
-   tiny 2-octave value-noise fragment shader. */
-const NEBULA_VERT = `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`;
-const NEBULA_FRAG = `
+/* soft petal silhouette, drawn once and reused as a sprite */
+function petalTex() {
+  const c = document.createElement("canvas"); c.width = c.height = 64;
+  const g = c.getContext("2d");
+  const grd = g.createLinearGradient(0, 0, 0, 64);
+  grd.addColorStop(0, "rgba(255,196,92,.95)");
+  grd.addColorStop(1, "rgba(240,116,26,.65)");
+  g.fillStyle = grd;
+  g.beginPath();
+  g.ellipse(32, 32, 26, 13, 0, 0, Math.PI * 2);
+  g.fill();
+  return new THREE.CanvasTexture(c);
+}
+
+const SKY_VERT = `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`;
+/* A calm vertical gradient with a slow drifting bloom — no noisy static. */
+const SKY_FRAG = `
 precision mediump float; varying vec2 vUv;
-uniform float uT; uniform float uAmp; uniform vec3 uA; uniform vec3 uB; uniform vec3 uC;
-float h(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453); }
-float n(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
-  return mix(mix(h(i),h(i+vec2(1.0,0.0)),f.x), mix(h(i+vec2(0.0,1.0)),h(i+vec2(1.0,1.0)),f.x), f.y); }
+uniform float uT, uAmp; uniform vec3 uTop, uBot, uGlow;
 void main(){
-  float t=uT*0.045;
-  float m = n(vUv*3.0+vec2(t,-t))*0.62 + n(vUv*7.0-vec2(t*1.4))*0.38;
-  vec3 col = mix(uA, uB, smoothstep(0.18, 0.82, m));
-  col = mix(col, uC, pow(n(vUv*2.0+vec2(t*1.7)), 3.0)*0.55);
-  float vig = smoothstep(1.0, 0.22, distance(vUv, vec2(0.5)));
-  gl_FragColor = vec4(col, m*vig*uAmp);
+  float g = smoothstep(0., 1., vUv.y);
+  vec3 col = mix(uBot, uTop, g);
+  vec2 c = vec2(.5 + sin(uT*.06)*.16, .42 + cos(uT*.05)*.12);
+  float bloom = pow(1. - clamp(distance(vUv, c)*1.6, 0., 1.), 3.);
+  col = mix(col, uGlow, bloom * .55);
+  gl_FragColor = vec4(col, uAmp);
 }`;
 
-/* Brass kalash — lathe profile, coconut, mango-leaf fan, neck band. */
-function buildKalash(gold, goldBright) {
-  const grp = new THREE.Group();
-  const prof = [
-    [0.02, 0], [0.5, 0.03], [0.68, 0.2], [0.74, 0.46], [0.66, 0.7],
-    [0.44, 0.86], [0.3, 0.94], [0.27, 1.05], [0.4, 1.12], [0.44, 1.18], [0.31, 1.22],
-  ].map((p) => new THREE.Vector2(p[0], p[1]));
-  grp.add(new THREE.Mesh(new THREE.LatheGeometry(prof, 48), gold));
-  const band = new THREE.Mesh(new THREE.TorusGeometry(0.285, 0.024, 12, 40), goldBright);
-  band.rotation.x = Math.PI / 2; band.position.y = 0.99; grp.add(band);
-  const coco = new THREE.Mesh(
-    new THREE.SphereGeometry(0.235, 24, 18),
-    new THREE.MeshStandardMaterial({ color: 0x6b4a2f, roughness: 0.95 }));
-  coco.scale.set(1, 1.14, 1); coco.position.y = 1.36; grp.add(coco);
-  const leafShape = new THREE.Shape();
-  leafShape.moveTo(0, 0);
-  leafShape.quadraticCurveTo(0.1, 0.18, 0, 0.46);
-  leafShape.quadraticCurveTo(-0.1, 0.18, 0, 0);
-  const leafGeo = new THREE.ShapeGeometry(leafShape);
-  const leafMat = new THREE.MeshStandardMaterial({ color: 0x1f8f66, roughness: 0.55, side: THREE.DoubleSide });
-  for (let i = 0; i < 6; i++) {
-    const pivot = new THREE.Group(); pivot.rotation.y = (i / 6) * Math.PI * 2;
-    const lf = new THREE.Mesh(leafGeo, leafMat);
-    lf.position.set(0.27, 1.13, 0); lf.rotation.set(0, Math.PI / 2, -1.05);
-    pivot.add(lf); grp.add(pivot);
+/* ── props ──────────────────────────────────────────────────────── */
+
+function makeKalash(gold, bright) {
+  const g = new THREE.Group();
+  const prof = [[.02,0],[.5,.03],[.68,.2],[.74,.46],[.66,.7],[.44,.86],[.3,.94],[.27,1.05],[.4,1.12],[.44,1.18],[.31,1.22]]
+    .map(p => new THREE.Vector2(p[0], p[1]));
+  g.add(new THREE.Mesh(new THREE.LatheGeometry(prof, 64), gold));
+  const band = new THREE.Mesh(new THREE.TorusGeometry(.285, .022, 12, 48), bright);
+  band.rotation.x = Math.PI / 2; band.position.y = .99; g.add(band);
+  const coco = new THREE.Mesh(new THREE.SphereGeometry(.23, 28, 20),
+    new THREE.MeshStandardMaterial({ color: 0x7a5533, roughness: .85, metalness: .05 }));
+  coco.scale.set(1, 1.12, 1); coco.position.y = 1.35; g.add(coco);
+  const ls = new THREE.Shape();
+  ls.moveTo(0, 0); ls.quadraticCurveTo(.11, .2, 0, .5); ls.quadraticCurveTo(-.11, .2, 0, 0);
+  const lg = new THREE.ShapeGeometry(ls);
+  const lm = new THREE.MeshStandardMaterial({
+    color: 0x2fa877, roughness: .5, side: THREE.DoubleSide,
+    emissive: 0x0d3d2a, emissiveIntensity: .6,
+  });
+  for (let i = 0; i < 7; i++) {
+    const pv = new THREE.Group(); pv.rotation.y = (i / 7) * Math.PI * 2;
+    const lf = new THREE.Mesh(lg, lm);
+    lf.position.set(.26, 1.12, 0); lf.rotation.set(0, Math.PI / 2, -1.0);
+    pv.add(lf); g.add(pv);
   }
-  return grp;
+  return g;
 }
 
-/* Marigold toran — two catenary garland strands of instanced pompoms
-   with leaf pairs, strung across the top of the hero. */
-function buildToran(scene, small) {
-  const per = small ? 11 : 15;
-  const strands = [];
-  const flowerGeo = new THREE.SphereGeometry(0.115, 10, 8);
-  const mOrange = new THREE.MeshStandardMaterial({ color: 0xf07f1f, roughness: 0.75 });
-  const mYellow = new THREE.MeshStandardMaterial({ color: 0xf5c331, roughness: 0.75 });
-  const leafGeo = new THREE.ConeGeometry(0.05, 0.16, 6);
-  const mLeaf = new THREE.MeshStandardMaterial({ color: 0x1f8f66, roughness: 0.6 });
-  const dummy = new THREE.Object3D();
-  [[3.05, 0.62, -1.6], [2.78, 0.5, -2.3]].forEach(([yEnd, sag, z], s) => {
-    const grp = new THREE.Group();
-    const pts = [];
-    for (let i = 0; i < per; i++) {
-      const u = i / (per - 1), x = (u - 0.5) * 8.6;
-      pts.push(new THREE.Vector3(x, yEnd - sag * Math.sin(Math.PI * u), z));
-    }
-    const curve = new THREE.CatmullRomCurve3(pts);
-    grp.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 40, 0.012, 6),
-      new THREE.MeshStandardMaterial({ color: 0x8a6b1e, roughness: 0.7 })));
-    const instA = new THREE.InstancedMesh(flowerGeo, mOrange, Math.ceil(per / 2));
-    const instB = new THREE.InstancedMesh(flowerGeo, mYellow, Math.floor(per / 2));
-    const leaves = new THREE.InstancedMesh(leafGeo, mLeaf, per - 1);
-    let a = 0, b = 0;
-    pts.forEach((p, i) => {
-      dummy.position.copy(p); dummy.rotation.set(0, 0, 0);
-      dummy.scale.setScalar(0.9 + ((i * 37) % 10) / 40);
-      dummy.updateMatrix();
-      if (i % 2 === 0) instA.setMatrixAt(a++, dummy.matrix); else instB.setMatrixAt(b++, dummy.matrix);
-      if (i < per - 1) {
-        dummy.position.lerpVectors(p, pts[i + 1], 0.5); dummy.position.y -= 0.05;
-        dummy.rotation.set(Math.PI, 0, (i % 2 ? 0.5 : -0.5)); dummy.updateMatrix();
-        leaves.setMatrixAt(i, dummy.matrix);
-      }
-    });
-    [instA, instB, leaves].forEach((m) => { m.frustumCulled = false; grp.add(m); });
-    grp.userData.ph = s * 1.7;
-    scene.add(grp); strands.push(grp);
-  });
-  return strands;
+/* Layered paper-cut ridges. Reads as intentional illustration at any
+   distance — the opposite of a bare cone. */
+function ridgeLayer(width, height, seed, color, y, z, opacity) {
+  const shape = new THREE.Shape();
+  const steps = 40;
+  shape.moveTo(-width / 2, -6);
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps, x = -width / 2 + t * width;
+    const h = Math.sin(t * Math.PI * 2.2 + seed) * .5 + Math.sin(t * Math.PI * 5.7 + seed * 2) * .28 + Math.sin(t * Math.PI * 11 + seed) * .12;
+    shape.lineTo(x, h * height);
+  }
+  shape.lineTo(width / 2, -6);
+  shape.closePath();
+  const m = new THREE.Mesh(new THREE.ShapeGeometry(shape),
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false }));
+  m.position.set(0, y, z);
+  return m;
 }
 
-/* Akash-kandil sky lanterns — emissive paper cylinders that rise & wrap. */
-function buildLanterns(scene, glowTex, small) {
-  const n = small ? 4 : 6;
-  const bodyGeo = new THREE.CylinderGeometry(0.15, 0.2, 0.34, 10);
-  const capGeo = new THREE.ConeGeometry(0.16, 0.1, 10);
-  const mat = new THREE.MeshStandardMaterial({
-    color: 0x8a2d12, emissive: 0xff7b2d, emissiveIntensity: 1.35, roughness: 0.6,
+function makeMandap(gold, bright) {
+  const g = new THREE.Group();
+  const pillar = new THREE.CylinderGeometry(.13, .17, 5, 20);
+  const pts = [[-2.6, -1.4], [2.6, -1.4], [-2.6, 2.2], [2.6, 2.2]];
+  pts.forEach(([x, z]) => {
+    const p = new THREE.Mesh(pillar, gold); p.position.set(x, -.8, z - 2); g.add(p);
+    const k = new THREE.Mesh(new THREE.SphereGeometry(.2, 20, 14), bright);
+    k.position.set(x, 1.85, z - 2); g.add(k);
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(.28, .34, .22, 20), bright);
+    base.position.set(x, -3.25, z - 2); g.add(base);
   });
-  const capMat = new THREE.MeshStandardMaterial({ color: 0x5a1c0c, roughness: 0.8 });
-  return Array.from({ length: n }, (_, i) => {
-    const g = new THREE.Group();
-    g.add(new THREE.Mesh(bodyGeo, mat));
-    const cap = new THREE.Mesh(capGeo, capMat); cap.position.y = 0.22; g.add(cap);
-    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.75 }));
-    sp.scale.setScalar(1.1); g.add(sp);
-    const side = i % 2 ? 1 : -1;
-    g.position.set(side * (2.7 + Math.random() * 1.4), -3 + Math.random() * 6, -2.2 - Math.random() * 2);
-    g.userData = { sp: 0.1 + Math.random() * 0.1, ph: Math.random() * 6.28, x0: g.position.x };
-    scene.add(g); return g;
+  // draped canopy: four gentle catenary swags instead of a hard cone
+  const swagMat = new THREE.MeshStandardMaterial({
+    color: 0x8f2545, roughness: .85, side: THREE.DoubleSide,
+    emissive: 0x3d0d1d, emissiveIntensity: .5,
   });
+  [[[-2.6, -1.4], [2.6, -1.4]], [[-2.6, 2.2], [2.6, 2.2]],
+   [[-2.6, -1.4], [-2.6, 2.2]], [[2.6, -1.4], [2.6, 2.2]]].forEach(([a, b]) => {
+    const curve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(a[0], 1.85, a[1] - 2),
+      new THREE.Vector3((a[0] + b[0]) / 2, 1.15, (a[1] + b[1]) / 2 - 2),
+      new THREE.Vector3(b[0], 1.85, b[1] - 2),
+    ]);
+    g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 28, .11, 10), swagMat));
+  });
+  return g;
 }
 
-/* Hero scene: nebula shader sky, kalash + chakra halo, floating diyas with
-   flickering lights, toran garlands, rising lanterns, instanced petals,
-   embers & haldi dust — theme-aware, scroll- and pointer-linked. */
-function Scene3D({ heroP, theme, reduced }) {
+function Stage3D({ prog, theme, reduced, party }) {
   const hostRef = useRef(null);
-  const pRef = useRef(heroP); pRef.current = heroP;
-  const [ok, setOk] = useState(true);
+  const pRef = useRef(prog); pRef.current = prog;
+  const partyRef = useRef(party); partyRef.current = party;
   const apiRef = useRef(null);
+  const [ok, setOk] = useState(true);
 
   useEffect(() => {
     const host = hostRef.current; if (!host) return;
     let R;
-    try {
-      R = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
-    } catch (e) { setOk(false); return; }
-    R.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+    try { R = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" }); }
+    catch { setOk(false); return; }
+
+    const small = window.innerWidth < 700;
+    R.setPixelRatio(Math.min(window.devicePixelRatio || 1, small ? 1.6 : 2));
     R.outputEncoding = THREE.sRGBEncoding;
     R.toneMapping = THREE.ACESFilmicToneMapping;
-    R.toneMappingExposure = 1.12;
+    R.toneMappingExposure = 1.05;
     R.setClearColor(0x000000, 0);
     host.appendChild(R.domElement);
-    R.domElement.style.width = "100%"; R.domElement.style.height = "100%"; R.domElement.style.display = "block";
+    Object.assign(R.domElement.style, { width: "100%", height: "100%", display: "block" });
 
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x0a0e24, 0.05);
-    const cam = new THREE.PerspectiveCamera(42, 1, 0.1, 60);
-    cam.position.set(0, 0.2, 7.2);
+    scene.fog = new THREE.Fog(0x0a0e24, 16, 46);
+    const cam = new THREE.PerspectiveCamera(46, 1, .1, 90);
 
-    const amb = new THREE.AmbientLight(0xffe9c4, 0.55);
-    const key = new THREE.DirectionalLight(0xffd98a, 1.15); key.position.set(3.5, 5, 4);
-    const rim = new THREE.DirectionalLight(0x8fb7ff, 0.5); rim.position.set(-4, 2, -3);
-    scene.add(amb, key, rim);
+    /* lighting: warm key, cool rim, soft sky/ground fill.
+       Nothing in the scene can fall to flat grey. */
+    const hemi = new THREE.HemisphereLight(0xffe0b0, 0x2a1a3a, .75);
+    const key = new THREE.DirectionalLight(0xffd08a, 1.35); key.position.set(4, 7, 6);
+    const rim = new THREE.DirectionalLight(0x9ec4ff, .75); rim.position.set(-5, 2, -4);
+    scene.add(hemi, key, rim);
 
-    // nebula backdrop
-    const nebula = new THREE.Mesh(
-      new THREE.PlaneGeometry(26, 15),
-      new THREE.ShaderMaterial({
-        vertexShader: NEBULA_VERT, fragmentShader: NEBULA_FRAG,
-        transparent: true, depthWrite: false,
-        uniforms: {
-          uT: { value: 0 }, uAmp: { value: 0.55 },
-          uA: { value: new THREE.Color(0x131938) },
-          uB: { value: new THREE.Color(0x7c1f38) },
-          uC: { value: new THREE.Color(0x1f8f66) },
-        },
-      }));
-    nebula.position.set(0, 0.4, -7); scene.add(nebula);
-
-    const gold = new THREE.MeshStandardMaterial({ color: 0xdfa93c, metalness: 0.88, roughness: 0.32, emissive: 0x2a1a05, emissiveIntensity: 0.6 });
-    const goldBright = new THREE.MeshStandardMaterial({ color: 0xf3ca63, metalness: 0.9, roughness: 0.24, emissive: 0x33220a, emissiveIntensity: 0.7 });
-
-    const kalash = buildKalash(gold, goldBright);
-    kalash.position.set(0, -2.55, 0); kalash.scale.setScalar(1.35);
-    scene.add(kalash);
-
-    const glowTex = makeGlowTex();
-    // chakra halo behind the kalash + soft aura
-    const haloMat = () => new THREE.MeshBasicMaterial({ color: 0xf3ca63, transparent: true, opacity: 0.26, blending: THREE.AdditiveBlending, depthWrite: false });
-    const halos = [1.15, 1.5, 1.9].map((r, i) => {
-      const m = new THREE.Mesh(new THREE.TorusGeometry(r, 0.012, 8, 90), haloMat());
-      m.position.set(0, -0.85, -0.8); m.rotation.x = 0.35 + i * 0.12;
-      scene.add(m); return m;
-    });
-    const aura = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.5 }));
-    aura.scale.setScalar(4.6); aura.position.set(0, -1.1, -1); scene.add(aura);
-
-    // floating diyas
-    const bowlGeo = new THREE.LatheGeometry(
-      [[0.02, 0], [0.2, 0.02], [0.27, 0.09], [0.24, 0.13], [0.185, 0.14]].map((p) => new THREE.Vector2(p[0], p[1])), 28);
-    const bowlMat = new THREE.MeshStandardMaterial({ color: 0xb0562e, roughness: 0.9, emissive: 0x30100a, emissiveIntensity: 0.5 });
-    const flameGeo = new THREE.SphereGeometry(0.07, 10, 10);
-    const flameMat = new THREE.MeshBasicMaterial({ color: 0xffd88a });
-    const diyaPos = [[-2.9, 0.35, -0.6], [2.9, 0.05, -0.4], [-2.15, -1.55, 0.6], [2.3, -1.35, 0.5], [-3.35, -0.7, -1.3], [3.4, 0.9, -1.5]];
-    const diyas = diyaPos.map((pos, i) => {
-      const g = new THREE.Group();
-      g.add(new THREE.Mesh(bowlGeo, bowlMat));
-      const fl = new THREE.Mesh(flameGeo, flameMat);
-      fl.scale.set(1, 1.7, 1); fl.position.y = 0.2; g.add(fl);
-      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.9 }));
-      sp.scale.setScalar(0.85); sp.position.y = 0.22; g.add(sp);
-      let light = null;
-      if (i < 4) { light = new THREE.PointLight(0xff9b4d, 0.85, 7, 2); light.position.y = 0.25; g.add(light); }
-      g.position.set(pos[0], pos[1], pos[2]);
-      scene.add(g);
-      return { g, fl, sp, light, baseY: pos[1], ph: Math.random() * Math.PI * 2 };
-    });
-
-    const small = window.innerWidth < 640;
-    const toran = buildToran(scene, small);
-    const lanterns = buildLanterns(scene, glowTex, small);
-
-    // instanced 3D petals
-    const N = small ? 55 : 105;
-    const petalGeo = new THREE.CircleGeometry(0.11, 10); petalGeo.scale(1, 0.42, 1);
-    const petalMat = new THREE.MeshStandardMaterial({ color: 0xf59a2b, roughness: 0.8, side: THREE.DoubleSide });
-    const inst = new THREE.InstancedMesh(petalGeo, petalMat, N);
-    inst.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-    inst.frustumCulled = false;
-    scene.add(inst);
-    const petals = Array.from({ length: N }, () => ({
-      x: (Math.random() - 0.5) * 8.4, y: Math.random() * 7 - 3.2, z: -2.4 + Math.random() * 3.6,
-      sp: 0.22 + Math.random() * 0.35, ph: Math.random() * Math.PI * 2,
-      rx: (Math.random() - 0.5) * 1.6, ry: (Math.random() - 0.5) * 1.6, rz: (Math.random() - 0.5) * 1.6,
+    const sky = new THREE.Mesh(new THREE.PlaneGeometry(120, 70), new THREE.ShaderMaterial({
+      vertexShader: SKY_VERT, fragmentShader: SKY_FRAG,
+      depthWrite: false, transparent: true,
+      uniforms: {
+        uT: { value: 0 }, uAmp: { value: 1 },
+        uTop: { value: new THREE.Color(0x0a0e24) },
+        uBot: { value: new THREE.Color(0x2a1330) },
+        uGlow: { value: new THREE.Color(0x7c1f38) },
+      },
     }));
-    const dummy = new THREE.Object3D();
+    sky.position.z = -34; cam.add(sky); scene.add(cam);
 
-    // rising embers
-    const en = small ? 40 : 70;
-    const eGeo = new THREE.BufferGeometry();
-    const ePos = new Float32Array(en * 3); const eVel = new Float32Array(en);
-    for (let i = 0; i < en; i++) {
-      ePos[i * 3] = (Math.random() - 0.5) * 7; ePos[i * 3 + 1] = -3 + Math.random() * 4; ePos[i * 3 + 2] = -1.5 + Math.random() * 2.5;
-      eVel[i] = 0.25 + Math.random() * 0.45;
+    const glowT = radialTex("255,222,160", "255,150,60");
+    const petT = petalTex();
+
+    const gold = new THREE.MeshStandardMaterial({
+      color: 0xe8b84b, metalness: .95, roughness: .26,
+      emissive: 0x3a2408, emissiveIntensity: .55,
+    });
+    const bright = new THREE.MeshStandardMaterial({
+      color: 0xf9d97e, metalness: .9, roughness: .18,
+      emissive: 0x4a3210, emissiveIntensity: .7,
+    });
+
+    const zones = [];
+    const addZone = (i, build) => {
+      const g = new THREE.Group();
+      g.position.y = -i * GAP;
+      build(g);
+      scene.add(g); zones.push(g); return g;
+    };
+
+    const softGlow = (x, y, z, s, color, op = .8) => {
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: glowT, transparent: true, blending: THREE.AdditiveBlending,
+        depthWrite: false, color, opacity: op,
+      }));
+      sp.position.set(x, y, z); sp.scale.setScalar(s); return sp;
+    };
+
+    /* ── 0 · Antarpat: the kalash, haloed, with a hanging toran ── */
+    addZone(0, (g) => {
+      const k = makeKalash(gold, bright);
+      k.position.set(0, -2.4, -6); k.scale.setScalar(1.7);
+      g.add(k);
+      g.userData.kalash = k;
+      const halos = [1.5, 2.0, 2.6].map((r, i) => {
+        const m = new THREE.Mesh(new THREE.TorusGeometry(r, .008, 8, 96),
+          new THREE.MeshBasicMaterial({ color: 0xf9d97e, transparent: true, opacity: .32 - i * .06, depthWrite: false, blending: THREE.AdditiveBlending }));
+        m.position.set(0, -1.2, -6.4); m.rotation.x = 1.15 + i * .06;
+        g.add(m); return m;
+      });
+      g.userData.halos = halos;
+      g.add(softGlow(0, -1.4, -6.6, 9, 0xffb066, .55));
+      // toran swag across the top
+      const curve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(-7, 3.4, -8), new THREE.Vector3(0, 1.9, -8), new THREE.Vector3(7, 3.4, -8),
+      ]);
+      g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 40, .015, 6),
+        new THREE.MeshBasicMaterial({ color: 0xb8891f })));
+      const buds = [];
+      for (let i = 0; i <= 22; i++) {
+        const p = curve.getPointAt(i / 22);
+        const b = softGlow(p.x, p.y - .22, p.z, .78, i % 2 ? 0xffa53d : 0xffd166, .95);
+        g.add(b); buds.push(b);
+      }
+      g.userData.buds = buds;
+    });
+
+    /* ── 1 · Katha: a constellation, orbs joined by light ── */
+    addZone(1, (g) => {
+      const orbs = [];
+      const pts = [];
+      for (let i = 0; i < 22; i++) {
+        const a = i * 2.4, r = 2 + (i % 5) * .95;
+        const v = new THREE.Vector3(Math.cos(a) * r * 1.5, Math.sin(a * .7) * 4.2, -15 + Math.sin(a) * 3);
+        pts.push(v);
+        const s = softGlow(v.x, v.y, v.z, .5 + (i % 3) * .22,
+          [0xffd166, 0xff8fb0, 0x8fe6c4][i % 3], .9);
+        g.add(s); orbs.push(s);
+      }
+      const lineGeo = new THREE.BufferGeometry().setFromPoints(pts);
+      g.add(new THREE.Line(lineGeo, new THREE.LineBasicMaterial({
+        color: 0xe8b84b, transparent: true, opacity: .12,
+      })));
+      g.userData.orbs = orbs;
+    });
+
+    /* ── 2 · Muhurat: six lanterns in a slow carousel ── */
+    addZone(2, (g) => {
+      const ring = new THREE.Group();
+      const body = new THREE.CylinderGeometry(.2, .26, .5, 16);
+      const capG = new THREE.ConeGeometry(.22, .16, 16);
+      const capM = new THREE.MeshStandardMaterial({ color: 0x6b2410, roughness: .7, metalness: .2 });
+      const tints = [0xff9b4d, 0xffd166, 0xff6f9c, 0x4fd6a8, 0xffa53d, 0xf9d97e];
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2;
+        const L = new THREE.Group();
+        L.add(new THREE.Mesh(body, new THREE.MeshStandardMaterial({
+          color: 0xd8622a, emissive: tints[i], emissiveIntensity: 1.5,
+          roughness: .55, transparent: true, opacity: .96,
+        })));
+        const c = new THREE.Mesh(capG, capM); c.position.y = .32; L.add(c);
+        L.add(softGlow(0, 0, 0, 2.1, tints[i], .75));
+        L.position.set(Math.cos(a) * 4.4, Math.sin(a * 2) * .8, -14 + Math.sin(a) * 3);
+        L.userData.ph = i * 1.05;
+        ring.add(L);
+      }
+      g.add(ring); g.userData.ring = ring;
+    });
+
+    /* ── 3 · Rasta: paper-cut ridges + a glowing river ── */
+    addZone(3, (g) => {
+      const bands = [
+        [40, 3.0, 1.1, 0x0e3328, -4.2, -26, .8],
+        [34, 2.5, 2.7, 0x123f31, -4.8, -22, .72],
+        [28, 2.0, 4.3, 0x17503d, -5.4, -18, .6],
+      ];
+      bands.forEach(([w, h, s, c, y, z, o]) => g.add(ridgeLayer(w, h, s, c, y, z, o)));
+      // river: a wide flat ribbon of light, not a tube
+      const riverShape = new THREE.Shape();
+      riverShape.moveTo(-16, -.55); riverShape.lineTo(16, -.9);
+      riverShape.lineTo(16, .9); riverShape.lineTo(-16, .55);
+      const river = new THREE.Mesh(new THREE.ShapeGeometry(riverShape),
+        new THREE.MeshBasicMaterial({ color: 0x2b7fb0, transparent: true, opacity: .32, depthWrite: false }));
+      river.position.set(0, -5.6, -17); river.rotation.x = -.22;
+      g.add(river);
+      g.add(softGlow(0, -5.5, -16.6, 16, 0x3fa9e0, .18));
+      // lantern boats drifting downstream — pure light, no boxes
+      const boats = [];
+      for (let i = 0; i < 7; i++) {
+        const b = softGlow(-14 + i * 4.4, -5.35, -16.4, .9, 0xffb066, .8);
+        g.add(b); boats.push(b);
+      }
+      g.userData.boats = boats;
+    });
+
+    /* ── 4 · Yeta ka: the mandap, rings turning under the canopy ── */
+    addZone(4, (g) => {
+      const m = makeMandap(gold, bright);
+      m.position.set(0, -1.6, -13); m.scale.setScalar(1.0);
+      g.add(m);
+      const rG = new THREE.TorusGeometry(.66, .075, 20, 64);
+      const r1 = new THREE.Mesh(rG, new THREE.MeshStandardMaterial({ color: 0xf0c65a, metalness: .95, roughness: .18, emissive: 0x4a3210, emissiveIntensity: .7 }));
+      const r2 = new THREE.Mesh(rG, new THREE.MeshStandardMaterial({ color: 0xf2a898, metalness: .95, roughness: .2, emissive: 0x4a1a12, emissiveIntensity: .7 }));
+      r1.position.x = -.38; r2.position.x = .38; r2.rotation.y = Math.PI / 2.15;
+      const rings = new THREE.Group(); rings.add(r1, r2);
+      rings.position.set(0, -1.0, -12); g.add(rings);
+      g.add(softGlow(0, -1.0, -12.4, 6, 0xffc978, .4));
+      g.userData.rings = rings;
+    });
+
+    /* ── 5 · Ashirwad: a sky of lanterns rising for good ── */
+    addZone(5, (g) => {
+      const n = small ? 70 : 120;
+      const geo = new THREE.BufferGeometry();
+      const pos = new Float32Array(n * 3), vel = new Float32Array(n);
+      for (let i = 0; i < n; i++) {
+        pos[i * 3] = (Math.random() - .5) * 30;
+        pos[i * 3 + 1] = -10 + Math.random() * 22;
+        pos[i * 3 + 2] = -28 + Math.random() * 22;
+        vel[i] = .4 + Math.random() * .9;
+      }
+      geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      const pts = new THREE.Points(geo, new THREE.PointsMaterial({
+        map: glowT, size: 1.5, transparent: true, opacity: .95,
+        blending: THREE.AdditiveBlending, depthWrite: false,
+        color: 0xffb877, sizeAttenuation: true,
+      }));
+      g.add(pts);
+      g.userData.sky = { pts, pos, vel, n };
+    });
+
+    /* ── petals: warm sprites, always BEHIND the panels ── */
+    const PN = small ? 18 : 30;
+    const petals = [];
+    for (let i = 0; i < PN; i++) {
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: petT, transparent: true, depthWrite: false,
+        opacity: .28 + Math.random() * .22, rotation: Math.random() * 6.3,
+      }));
+      sp.scale.setScalar(.32 + Math.random() * .3);
+      sp.position.set((Math.random() - .5) * 28, Math.random() * 24 - 12, -11 - Math.random() * 13);
+      sp.userData = { s: .5 + Math.random() * .8, ph: Math.random() * 6.3, vr: (Math.random() - .5) * .5 };
+      scene.add(sp); petals.push(sp);
     }
-    eGeo.setAttribute("position", new THREE.BufferAttribute(ePos, 3));
-    const embers = new THREE.Points(eGeo, new THREE.PointsMaterial({ color: 0xffb066, size: 0.05, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false }));
-    scene.add(embers);
-
-    // haldi dust
-    const dn = small ? 90 : 150; const dGeo = new THREE.BufferGeometry();
-    const dp = new Float32Array(dn * 3);
-    for (let i = 0; i < dn; i++) { dp[i * 3] = (Math.random() - 0.5) * 9; dp[i * 3 + 1] = Math.random() * 7 - 3; dp[i * 3 + 2] = -3 + Math.random() * 4; }
-    dGeo.setAttribute("position", new THREE.BufferAttribute(dp, 3));
-    const dust = new THREE.Points(dGeo, new THREE.PointsMaterial({ color: 0xffe2a1, size: 0.035, transparent: true, opacity: 0.65, blending: THREE.AdditiveBlending, depthWrite: false }));
-    scene.add(dust);
 
     const resize = () => {
       const w = host.clientWidth || 1, h = host.clientHeight || 1;
-      R.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix();
+      R.setSize(w, h, false);
+      cam.aspect = w / h;
+      cam.fov = w / h < .7 ? 58 : w / h < 1 ? 52 : 46;
+      cam.updateProjectionMatrix();
       if (reduced) R.render(scene, cam);
     };
     const ro = new ResizeObserver(resize); ro.observe(host); resize();
 
     let tx = 0, ty = 0;
-    const onMove = (e) => { tx = e.clientX / window.innerWidth - 0.5; ty = e.clientY / window.innerHeight - 0.5; };
-    if (!reduced) window.addEventListener("pointermove", onMove, { passive: true });
+    const onMove = (e) => { tx = e.clientX / window.innerWidth - .5; ty = e.clientY / window.innerHeight - .5; };
+    const onTilt = (e) => {
+      if (e.gamma == null) return;
+      tx = Math.max(-.6, Math.min(.6, e.gamma / 50));
+      ty = Math.max(-.6, Math.min(.6, (e.beta - 45) / 70));
+    };
+    if (!reduced) {
+      window.addEventListener("pointermove", onMove, { passive: true });
+      window.addEventListener("deviceorientation", onTilt, { passive: true });
+    }
 
-    let visible = true;
-    const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; }, { threshold: 0.02 });
-    io.observe(host);
+    const PAL = {
+      night: { top: 0x080b1e, bot: 0x2a1330, glow: 0x7c1f38, fog: 0x0a0e24, hemi: .75 },
+      day:   { top: 0xdfe9f5, bot: 0xf6dcc0, glow: 0xf3b98a, fog: 0xe9e0cf, hemi: 1.15 },
+      party: { top: 0x14042e, bot: 0x3d0b4a, glow: 0xff2e88, fog: 0x16062c, hemi: .9 },
+    };
 
     const clock = new THREE.Clock();
-    let raf = 0, alive = true;
+    let raf = 0, alive = true, camY = 0;
     const step = () => {
-      const dt = Math.min(clock.getDelta(), 0.05); const t = clock.elapsedTime;
-      nebula.material.uniforms.uT.value = t;
-      kalash.rotation.y = t * 0.28;
-      halos.forEach((h, i) => { h.rotation.z = t * (0.18 + i * 0.09) * (i % 2 ? -1 : 1); h.rotation.x = 0.35 + i * 0.12 + Math.sin(t * 0.4 + i) * 0.08; });
-      aura.material.opacity = 0.42 + Math.sin(t * 1.6) * 0.1;
-      toran.forEach((g) => { g.rotation.z = Math.sin(t * 0.5 + g.userData.ph) * 0.02; g.position.y = Math.sin(t * 0.7 + g.userData.ph) * 0.05; });
-      lanterns.forEach((L) => {
-        L.position.y += L.userData.sp * dt;
-        L.position.x = L.userData.x0 + Math.sin(t * 0.5 + L.userData.ph) * 0.25;
-        L.rotation.z = Math.sin(t * 0.6 + L.userData.ph) * 0.08;
-        if (L.position.y > 4.4) L.position.y = -3.6;
+      const dt = Math.min(clock.getDelta(), .05), t = clock.elapsedTime;
+      const p = pRef.current, pt = partyRef.current, sp = pt ? 2.2 : 1;
+      sky.material.uniforms.uT.value = t * sp;
+
+      /* the flight — eased, with a gentle drift so it never feels like
+         an elevator, and always framed well back from the geometry */
+      const targetY = -p * DEPTH;
+      camY += (targetY - camY) * .075;
+      cam.position.set(Math.sin(p * Math.PI * 2.4) * 1.4 + tx * 1.1,
+                       camY + .6 - ty * .7,
+                       7.2);
+      cam.lookAt(Math.sin(p * Math.PI * 2.4) * .5, camY - .5, -8);
+
+      const z0 = zones[0].userData;
+      z0.kalash.rotation.y = t * .22 * sp;
+      z0.halos.forEach((h, i) => { h.rotation.z = t * (.14 + i * .07) * (i % 2 ? -1 : 1) * sp; });
+      z0.buds.forEach((b, i) => {
+        b.material.opacity = .78 + Math.sin(t * 2 + i * .5) * .2;
+        b.position.y += Math.sin(t * 1.4 + i) * .0012;
       });
-      diyas.forEach((d, i) => {
-        d.g.position.y = d.baseY + Math.sin(t * 0.9 + d.ph) * 0.16;
-        d.g.rotation.z = Math.sin(t * 0.6 + d.ph) * 0.06;
-        const fk = 0.86 + Math.sin(t * 11 + d.ph * 3) * 0.1 + Math.sin(t * 23 + i) * 0.05;
-        d.fl.scale.y = 1.7 * fk; d.sp.material.opacity = 0.62 + fk * 0.3;
-        if (d.light) d.light.intensity = 0.7 + fk * 0.35;
+
+      zones[1].userData.orbs.forEach((o, i) => {
+        o.material.opacity = .5 + Math.sin(t * 1.6 + i) * .35;
+        o.position.y += Math.sin(t * .7 + i) * .0018;
       });
-      petals.forEach((p, i) => {
-        p.y -= p.sp * dt; if (p.y < -3.4) { p.y = 3.9; p.x = (Math.random() - 0.5) * 8.4; }
-        dummy.position.set(p.x + Math.sin(t * 0.7 + p.ph) * 0.4, p.y, p.z);
-        dummy.rotation.set(t * p.rx + p.ph, t * p.ry, t * p.rz);
-        dummy.updateMatrix(); inst.setMatrixAt(i, dummy.matrix);
+      zones[1].rotation.y = Math.sin(t * .07) * .16;
+
+      zones[2].userData.ring.rotation.y = t * .16 * sp;
+      zones[2].userData.ring.children.forEach((L) => {
+        L.position.y += Math.sin(t * 1.2 + L.userData.ph) * .0035;
       });
-      inst.instanceMatrix.needsUpdate = true;
-      for (let i = 0; i < en; i++) {
-        ePos[i * 3 + 1] += eVel[i] * dt;
-        if (ePos[i * 3 + 1] > 3.8) { ePos[i * 3 + 1] = -3.2; ePos[i * 3] = (Math.random() - 0.5) * 7; }
+
+      zones[3].userData.boats.forEach((b, i) => {
+        b.position.x += (.55 + i * .04) * dt * sp;
+        if (b.position.x > 16) b.position.x = -16;
+        b.material.opacity = .75 + Math.sin(t * 3 + i) * .25;
+      });
+
+      zones[4].userData.rings.rotation.y = t * .55 * sp;
+      zones[4].userData.rings.rotation.x = Math.sin(t * .6) * .22;
+
+      const S = zones[5].userData.sky;
+      for (let i = 0; i < S.n; i++) {
+        S.pos[i * 3 + 1] += S.vel[i] * dt * sp;
+        if (S.pos[i * 3 + 1] > 14) S.pos[i * 3 + 1] = -12;
       }
-      eGeo.attributes.position.needsUpdate = true;
-      embers.material.opacity = 0.55 + Math.sin(t * 3.1) * 0.2;
-      dust.rotation.y = t * 0.02;
-      cam.position.x = THREE.MathUtils.lerp(cam.position.x, tx * 0.55, 0.04);
-      cam.position.y = THREE.MathUtils.lerp(cam.position.y, 0.25 - pRef.current * 0.55 - ty * 0.3, 0.05);
-      cam.lookAt(0, -0.2, 0);
+      S.pts.geometry.attributes.position.needsUpdate = true;
+
+      petals.forEach((q) => {
+        const d = q.userData;
+        q.position.y -= d.s * dt * sp;
+        q.position.x += Math.sin(t * .6 + d.ph) * .006;
+        q.material.rotation += d.vr * dt;
+        if (q.position.y < camY - 13) {
+          q.position.y = camY + 13;
+          q.position.x = (Math.random() - .5) * 26;
+        }
+      });
+
+      if (pt) {
+        const beat = Math.pow(Math.abs(Math.sin(t * 3.1)), 8);
+        hemi.intensity = .9 + beat * 1.1;
+        key.intensity = 1.35 + beat * .9;
+      }
       R.render(scene, cam);
     };
-    const loop = () => { if (!alive) return; if (visible && !document.hidden) step(); raf = requestAnimationFrame(loop); };
-    if (reduced) { step(); } else { raf = requestAnimationFrame(loop); }
+    const loop = () => { if (!alive) return; if (!document.hidden) step(); raf = requestAnimationFrame(loop); };
+    if (reduced) step(); else raf = requestAnimationFrame(loop);
 
     apiRef.current = {
-      scene, amb, nebula,
-      renderOnce: () => R.render(scene, cam),
+      apply(theme, party) {
+        const c = party ? PAL.party : theme === "day" ? PAL.day : PAL.night;
+        const u = sky.material.uniforms;
+        u.uTop.value.set(c.top); u.uBot.value.set(c.bot); u.uGlow.value.set(c.glow);
+        scene.fog.color.set(c.fog);
+        hemi.intensity = c.hemi;
+        if (reduced) R.render(scene, cam);
+      },
     };
 
     return () => {
-      alive = false; cancelAnimationFrame(raf);
-      ro.disconnect(); io.disconnect();
+      alive = false; cancelAnimationFrame(raf); ro.disconnect();
       window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("deviceorientation", onTilt);
       scene.traverse((o) => {
         if (o.geometry) o.geometry.dispose();
-        if (o.material) { const m = Array.isArray(o.material) ? o.material : [o.material]; m.forEach((x) => { if (x.map) x.map.dispose(); x.dispose(); }); }
+        if (o.material) (Array.isArray(o.material) ? o.material : [o.material])
+          .forEach(m => { if (m.map) m.map.dispose(); m.dispose(); });
       });
-      glowTex.dispose(); R.dispose();
+      glowT.dispose(); petT.dispose(); R.dispose();
       if (R.domElement.parentNode) R.domElement.parentNode.removeChild(R.domElement);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reduced]);
 
-  useEffect(() => {
-    const a = apiRef.current; if (!a) return;
-    const day = theme === "day";
-    a.scene.fog.color.set(day ? 0xf8f0dd : 0x0a0e24);
-    a.amb.intensity = day ? 0.85 : 0.55;
-    const u = a.nebula.material.uniforms;
-    u.uAmp.value = day ? 0.35 : 0.55;
-    u.uA.value.set(day ? 0xf3e6c8 : 0x131938);
-    u.uB.value.set(day ? 0xf2c9a0 : 0x7c1f38);
-    u.uC.value.set(day ? 0xbfe3d2 : 0x1f8f66);
-    if (reduced) a.renderOnce();
-  }, [theme, reduced]);
+  useEffect(() => { apiRef.current?.apply(theme, party); }, [theme, party]);
 
   if (!ok) return null;
-  return <div ref={hostRef} aria-hidden="true" style={{ position: "absolute", inset: 0, zIndex: 2, pointerEvents: "none" }} />;
+  return <div ref={hostRef} className="stage3d" aria-hidden="true" />;
+}
+/* ── components/stage/Overlay.jsx ─────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════
+   The SVG skin over the 3D world. Like the scene below it, none of this
+   unmounts — a single ribbon, a single rangoli and a single garland are
+   drawn once and then continuously re-shaped by scroll progress.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* A rangoli that never redraws from scratch — it rotates, breathes and
+   swaps petal counts continuously as you travel. */
+function LiveRangoli({ prog, party }) {
+  const petals = 8 + Math.round(prog * 8);
+  const rot = prog * 420 + (party ? 0 : 0);
+  return (
+    <svg className={`liveRangoli ${party ? "party" : ""}`} viewBox="-60 -60 120 120" aria-hidden="true"
+      style={{ transform: `rotate(${rot}deg) scale(${1 + Math.sin(prog * Math.PI) * 0.22})` }}>
+      {Array.from({ length: petals }).map((_, i) => (
+        <ellipse key={i} rx="9" ry="34" cx="0" cy="0"
+          style={{ transform: `rotate(${(360 / petals) * i}deg)`, animationDelay: `${i * 90}ms` }} />
+      ))}
+      <circle r="9" className="rgCore" />
+      <circle r="46" className="rgRim" />
+      <circle r="54" className="rgRim slow" />
+    </svg>
+  );
 }
 
-/* Two interlocked wedding rings — gold & rose-gold tori, RSVP confirmation. */
-function Rings3D() {
-  const hostRef = useRef(null);
+/* Phrases with their meanings — no wordplay, no invented lines. */
+function PhraseTicker({ prog }) {
+  const i = Math.min(PHRASES.length - 1, Math.floor(prog * PHRASES.length));
+  const ph = PHRASES[i];
+  return (
+    <div className="ticker" key={ph.txt}>
+      <span className={ph.lang === "mr" ? "dev" : "kan"}>{ph.txt}</span>
+      <i>{ph.mean}</i>
+    </div>
+  );
+}
+
+/* Tap/click anywhere → confetti of petals, akshata and sparks.
+   Also fires automatically at each act boundary, so the whole journey
+   keeps popping without the guest doing anything. */
+function Confetti({ reduced, bindRef }) {
+  const cRef = useRef(null);
   useEffect(() => {
-    const host = hostRef.current; if (!host) return;
-    let R;
-    try { R = new THREE.WebGLRenderer({ antialias: true, alpha: true }); }
-    catch (e) { return; }
-    const reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    R.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
-    R.outputEncoding = THREE.sRGBEncoding;
-    R.toneMapping = THREE.ACESFilmicToneMapping;
-    R.setClearColor(0x000000, 0);
-    R.setSize(230, 150, false);
-    R.domElement.style.width = "230px"; R.domElement.style.height = "150px";
-    host.appendChild(R.domElement);
-    const scene = new THREE.Scene();
-    const cam = new THREE.PerspectiveCamera(38, 230 / 150, 0.1, 20); cam.position.z = 3.4;
-    scene.add(new THREE.AmbientLight(0xffe9c4, 0.7));
-    const key = new THREE.DirectionalLight(0xfff1c9, 1.3); key.position.set(2, 3, 4); scene.add(key);
-    const ringGeo = new THREE.TorusGeometry(0.62, 0.085, 24, 64);
-    const g1 = new THREE.Mesh(ringGeo, new THREE.MeshStandardMaterial({ color: 0xe6b64c, metalness: 0.95, roughness: 0.22, emissive: 0x2a1a05, emissiveIntensity: 0.5 }));
-    const g2 = new THREE.Mesh(ringGeo, new THREE.MeshStandardMaterial({ color: 0xe89a8a, metalness: 0.95, roughness: 0.24, emissive: 0x2a0f0a, emissiveIntensity: 0.5 }));
-    g1.position.x = -0.36; g2.position.x = 0.36; g2.rotation.y = Math.PI / 2.15;
-    const grp = new THREE.Group(); grp.add(g1, g2); grp.rotation.x = 0.35; scene.add(grp);
-    const sn = 26; const sGeo = new THREE.BufferGeometry();
-    const sPos = new Float32Array(sn * 3);
-    for (let i = 0; i < sn; i++) {
-      const a = (i / sn) * Math.PI * 2, r = 1.02 + (i % 3) * 0.09;
-      sPos[i * 3] = Math.cos(a) * r; sPos[i * 3 + 1] = Math.sin(a) * r * 0.55; sPos[i * 3 + 2] = Math.sin(a * 2) * 0.2;
-    }
-    sGeo.setAttribute("position", new THREE.BufferAttribute(sPos, 3));
-    const sparkles = new THREE.Points(sGeo, new THREE.PointsMaterial({ color: 0xffe2a1, size: 0.045, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false }));
-    scene.add(sparkles);
-    const clock = new THREE.Clock();
+    if (reduced) return;
+    const cv = cRef.current; if (!cv) return;
+    const ctx = cv.getContext("2d");
+    let W = 0, H = 0, dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const fit = () => {
+      W = cv.clientWidth; H = cv.clientHeight;
+      cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    fit();
+    const ro = new ResizeObserver(fit); ro.observe(cv);
+
+    const parts = [];
+    const COLORS = ["#f59a2b", "#ff5d8f", "#f7d87c", "#23c08f", "#fff3c8"];
+    const burst = (x, y, n = 46) => {
+      for (let i = 0; i < n; i++) {
+        const a = Math.random() * Math.PI * 2, sp = 2 + Math.random() * 7;
+        parts.push({
+          x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 3,
+          r: 2 + Math.random() * 5, rot: Math.random() * 6.3, vr: (Math.random() - .5) * .4,
+          c: COLORS[(Math.random() * COLORS.length) | 0], life: 1,
+          rice: Math.random() < .35,
+        });
+      }
+      if (parts.length > 700) parts.splice(0, parts.length - 700);
+    };
+    if (bindRef) bindRef.current = burst;
+
+    const tap = (e) => {
+      const t = e.touches?.[0] || e;
+      burst(t.clientX, t.clientY, 30);
+    };
+    window.addEventListener("pointerdown", tap, { passive: true });
+
     let raf = 0, alive = true;
     const loop = () => {
       if (!alive) return;
-      grp.rotation.y = clock.elapsedTime * 0.7;
-      grp.rotation.x = 0.35 + Math.sin(clock.elapsedTime * 0.8) * 0.12;
-      sparkles.rotation.y = -clock.elapsedTime * 1.1;
-      sparkles.rotation.z = Math.sin(clock.elapsedTime * 0.7) * 0.3;
-      sparkles.material.opacity = 0.65 + Math.sin(clock.elapsedTime * 4) * 0.25;
-      R.render(scene, cam);
-      if (!reduced) raf = requestAnimationFrame(loop);
-    };
-    loop();
-    return () => {
-      alive = false; cancelAnimationFrame(raf);
-      ringGeo.dispose(); g1.material.dispose(); g2.material.dispose(); sGeo.dispose(); sparkles.material.dispose(); R.dispose();
-      if (R.domElement.parentNode) R.domElement.parentNode.removeChild(R.domElement);
-    };
-  }, []);
-  return <div ref={hostRef} aria-hidden="true" style={{ display: "flex", justifyContent: "center", margin: "2px 0 6px" }} />;
-}
-
-
-/* Pointer-tracked 3D tilt with a moving glare highlight. Disabled for
-   touch pointers and reduced motion. */
-function Tilt({ className = "", children, max = 7, ...rest }) {
-  const ref = useRef(null);
-  const onMove = (e) => {
-    const el = ref.current; if (!el) return;
-    if (window.matchMedia && (window.matchMedia("(pointer: coarse)").matches ||
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches)) return;
-    const r = el.getBoundingClientRect();
-    const px = (e.clientX - r.left) / r.width, py = (e.clientY - r.top) / r.height;
-    el.style.setProperty("--ry", ((px - 0.5) * 2 * max).toFixed(2) + "deg");
-    el.style.setProperty("--rx", ((0.5 - py) * 2 * max).toFixed(2) + "deg");
-    el.style.setProperty("--gx", (px * 100).toFixed(1) + "%");
-    el.style.setProperty("--gy", (py * 100).toFixed(1) + "%");
-    el.style.setProperty("--go", 1);
-  };
-  const onLeave = () => {
-    const el = ref.current; if (!el) return;
-    el.style.setProperty("--rx", "0deg"); el.style.setProperty("--ry", "0deg");
-    el.style.setProperty("--go", 0);
-  };
-  return (
-    <div ref={ref} className={`tilt ${className}`} onPointerMove={onMove} onPointerLeave={onLeave} {...rest}>
-      {children}<span className="glare" aria-hidden="true" />
-    </div>
-  );
-}
-
-/* Soft gold glow that trails the cursor (screen blend). */
-function CursorGlow() {
-  const ref = useRef(null);
-  useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    if (window.matchMedia("(pointer: coarse)").matches) return;
-    let x = window.innerWidth / 2, y = window.innerHeight / 2, tx = x, ty = y, raf;
-    const mv = (e) => { tx = e.clientX; ty = e.clientY; };
-    const loop = () => {
-      x += (tx - x) * 0.12; y += (ty - y) * 0.12;
-      if (ref.current) ref.current.style.transform = `translate(${x - 170}px, ${y - 170}px)`;
+      ctx.clearRect(0, 0, W, H);
+      for (let i = parts.length - 1; i >= 0; i--) {
+        const p = parts[i];
+        p.vy += .22; p.vx *= .99; p.vy *= .99;
+        p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.life -= .009;
+        if (p.life <= 0 || p.y > H + 40) { parts.splice(i, 1); continue; }
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+        ctx.globalAlpha = Math.max(0, p.life);
+        ctx.fillStyle = p.rice ? "#fff8e6" : p.c;
+        if (p.rice) ctx.fillRect(-1.4, -3, 2.8, 6);
+        else { ctx.beginPath(); ctx.ellipse(0, 0, p.r, p.r * .55, 0, 0, 6.3); ctx.fill(); }
+        ctx.restore();
+      }
       raf = requestAnimationFrame(loop);
     };
-    window.addEventListener("pointermove", mv, { passive: true });
     raf = requestAnimationFrame(loop);
-    return () => { window.removeEventListener("pointermove", mv); cancelAnimationFrame(raf); };
-  }, []);
-  return <div ref={ref} className="cglow" aria-hidden="true" />;
-}
+    return () => {
+      alive = false; cancelAnimationFrame(raf); ro.disconnect();
+      window.removeEventListener("pointerdown", tap);
+      if (bindRef) bindRef.current = null;
+    };
+  }, [reduced, bindRef]);
 
-/* Self-drawing rangoli chapter divider — strokes draw in when scrolled
-   into view, paisley knot at the centre. */
-function RangoliDivider({ delay = 0 }) {
-  const ref = useRef(null); const [on, setOn] = useState(false);
-  useEffect(() => {
-    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setOn(true); io.disconnect(); } }, { threshold: 0.4 });
-    if (ref.current) io.observe(ref.current);
-    return () => io.disconnect();
-  }, []);
-  return (
-    <svg ref={ref} className={`rangoli ${on ? "draw" : ""}`} viewBox="0 0 560 64" aria-hidden="true">
-      <path pathLength="1" style={{ transitionDelay: `${delay}ms` }} d="M16 32 H196 M364 32 H544" />
-      <path pathLength="1" style={{ transitionDelay: `${delay + 220}ms` }}
-        d="M196 32 C224 4 250 4 266 26 C269 31 275 31 278 26 C294 4 320 4 348 32 C320 60 294 60 278 38 C275 33 269 33 266 38 C250 60 224 60 196 32 Z" />
-      <path pathLength="1" style={{ transitionDelay: `${delay + 460}ms` }}
-        d="M258 32 a14 14 0 1 0 28 0 a14 14 0 1 0 -28 0 M264 32 a8 8 0 1 0 16 0 a8 8 0 1 0 -16 0" />
-      <circle className="dot" cx="196" cy="32" r="3.2" />
-      <circle className="dot" cx="364" cy="32" r="3.2" />
-      <circle className="dot" cx="272" cy="32" r="2.4" />
-    </svg>
-  );
+  return <canvas ref={cRef} className="confetti" aria-hidden="true" />;
 }
-
-/* Blooming lotus — petals unfurl with a springy stagger. */
-function LotusBloom({ size = 132 }) {
-  return (
-    <svg className="lotus" width={size} height={size * 0.7} viewBox="0 0 132 92" aria-hidden="true">
-      {[-3, -2, -1, 0, 1, 2, 3].map((i) => (
-        <g key={i} style={{ transform: `rotate(${i * 17}deg)`, transformOrigin: "66px 84px" }}>
-          <path className="pet" style={{ animationDelay: `${(3 - Math.abs(i)) * 110 + 150}ms` }}
-            d="M66 84 C54 56 56 32 66 12 C76 32 78 56 66 84 Z" />
-        </g>
-      ))}
-      <circle className="lcore" cx="66" cy="70" r="7" />
-      <ellipse className="lbase" cx="66" cy="85" rx="30" ry="6" />
-    </svg>
-  );
-}
-
-/* Infinite phrase marquee — Belagavi × Kolhapur banter on a loop. */
-function Marquee() {
-  const items = ["Lai Bhari", "शुभमंगल सावधान", "Nad Khula", "halu halu · ಹಾಲು ಬೇಡ, ಹಳು ಹಳು!",
-    "Yeta ka mag?", "जेवण झालं का?", CONFIG.hashtag, "स्वागत · ಸುಸ್ವಾಗತ"];
-  const row = (k) => items.map((t, i) => <span key={k + i}>✦&nbsp;&nbsp;{t}</span>);
-  return (
-    <div className="marq" aria-hidden="true">
-      <div className="inner">{row("a")}{row("b")}</div>
-    </div>
-  );
-}
-
-function Reveal({ children, delay = 0, as: Tag = "div", className = "", style, ...rest }) {
-  const ref = useRef(null); const [on, setOn] = useState(false);
-  useEffect(() => {
-    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setOn(true); io.disconnect(); } }, { threshold: 0.15 });
-    if (ref.current) io.observe(ref.current);
-    return () => io.disconnect();
-  }, []);
-  return (
-    <Tag ref={ref} className={`rv ${on ? "in" : ""} ${className}`}
-      style={{ transitionDelay: `${delay}ms`, ...style }} {...rest}>{children}</Tag>
-  );
-}
-
-/* Antarpat — the silk cloth that parts as you scroll. p ∈ [0,1]. */
+/* ── components/hero/Curtain.jsx ─────────────────────────── */
 function Curtain({ p }) {
   const open = clamp((p - 0.12) / 0.5, 0, 1);
   const eased = 1 - Math.pow(1 - open, 3);
@@ -1256,6 +1541,7 @@ function Curtain({ p }) {
 }
 
 /* Countdown — live, with regionally calibrated time units. */
+/* ── components/events/Countdown.jsx ─────────────────────────── */
 function Countdown() {
   const target = new Date(CONFIG.weddingISO).getTime();
   const [now, setNow] = useState(Date.now());
@@ -1278,121 +1564,15 @@ function Countdown() {
         ))}
       </div>
       <p className="humor">
-        That's roughly <b>{misal}</b> misal breakfasts, <b>{chai}</b> cutting chais,
-        and <b>one</b> very busy Aaji away.
+        That's roughly <b>{chai}</b> cutting chais away — one hill in Gavani,
+        two families, and a whole lot of haldi.
       </p>
     </div>
   );
 }
 
 /* Itinerary card with per-event calendar actions. */
-function EventCard({ e, i }) {
-  return (
-    <Reveal delay={i * 90}>
-    <Tilt className="card event sheen">
-      <span className="emoji" aria-hidden="true">{e.emoji}</span>
-      <h3 className="display">{e.title}</h3>
-      <span className="tag">{e.tag}</span>
-      <div className="meta">
-        <Clock size={14} aria-hidden="true" /> {prettyDate(e.date)} · {to12h(e.start)}–{to12h(e.end)}
-      </div>
-      <div className="meta"><MapPin size={14} aria-hidden="true" /> {e.place}</div>
-      <div className="evBtns">
-        <a className="btn ghost" href={gcalUrl(e)} target="_blank" rel="noopener noreferrer">
-          <CalendarPlus size={14} /> Google
-        </a>
-        <button className="btn ghost" onClick={() => downloadICS(e)}>
-          <Download size={14} /> Apple / .ics
-        </button>
-      </div>
-      <div className="dressline"><b style={{ color: "var(--gold)" }}>Dress:</b> {e.dress} <em style={{ opacity: .8 }}>· {e.note}</em></div>
-    </Tilt>
-    </Reveal>
-  );
-}
-
-/* ════════════════════════════════════════════════════════════════════
-   VENUE MAP + LOCAL GUIDE
-   ════════════════════════════════════════════════════════════════════ */
-function RegionMap({ active, setActive, reduced }) {
-  const rideRoad = "M300 240 C 360 250, 420 265, 470 280 S 600 340, 645 385";
-  const road = "M150 140 C 210 180, 250 210, 300 240 S 330 310, 330 330 M300 240 C 360 250, 420 265, 470 280 S 600 340, 645 385 M470 280 C 500 230, 530 170, 565 130";
-  return (
-    <svg className="mapSvg" viewBox="0 0 800 520" role="img"
-      aria-label="Illustrated map of Belagavi region with venue and guest landmarks">
-      <rect width="800" height="520" rx="14" fill="var(--bg2)" />
-      {/* hills + river */}
-      <path d="M0 470 Q 90 420 190 462 T 400 466 T 620 458 T 800 468 L 800 520 L 0 520 Z"
-        fill="var(--maroon)" opacity=".18" />
-      <path d="M0 495 Q 120 458 260 492 T 540 494 T 800 490 L 800 520 L 0 520 Z"
-        fill="var(--gold)" opacity=".1" />
-      <path d="M40 40 C 140 90, 120 200, 210 260 C 280 306, 300 380, 260 480"
-        fill="none" stroke="var(--emerald)" strokeWidth="6" opacity=".28" strokeLinecap="round" />
-      <text x="66" y="330" fill="var(--emerald)" opacity=".6" fontSize="11"
-        style={{ letterSpacing: ".2em" }} transform="rotate(72 66 330)">GHATAPRABHA</text>
-      {/* roads */}
-      <path d={road} fill="none" stroke="var(--gold)" strokeWidth="2" opacity=".55" className="dash" />
-      {!reduced && (
-        <g aria-hidden="true">
-          {/* auto-rickshaw shuttling Kolhapur ↔ Belagavi */}
-          <g>
-            <animateMotion dur="16s" repeatCount="indefinite" rotate="auto" calcMode="linear"
-              keyPoints="0;1;0" keyTimes="0;0.5;1" path={rideRoad} />
-            <rect x="-9" y="-7" width="18" height="10" rx="3" fill="var(--gold)" />
-            <rect x="-5" y="-12" width="11" height="6" rx="2" fill="var(--rose)" />
-            <circle cx="-5" cy="4" r="3" fill="var(--ink)" />
-            <circle cx="5" cy="4" r="3" fill="var(--ink)" />
-          </g>
-          {/* monsoon birds */}
-          <g stroke="var(--muted)" strokeWidth="1.6" fill="none" opacity=".75">
-            <path d="M-6 0 Q-2 -4 0 0 Q2 -4 6 0">
-              <animateMotion dur="19s" repeatCount="indefinite" path="M110 92 C 300 58 520 112 780 68" />
-            </path>
-            <path d="M-5 0 Q-1.6 -3.4 0 0 Q1.6 -3.4 5 0">
-              <animateMotion dur="25s" repeatCount="indefinite" path="M50 142 C 260 100 540 150 790 108" />
-            </path>
-          </g>
-        </g>
-      )}
-      {/* monsoon cloud */}
-      <g transform="translate(660 52)" opacity=".85">
-        <path d="M0 22 a14 14 0 0 1 26 -8 a12 12 0 0 1 22 6 a10 10 0 0 1 -4 19 h-36 a11 11 0 0 1 -8 -17z"
-          fill="var(--card)" stroke="var(--line)" />
-        <line className="drop" x1="14" y1="44" x2="10" y2="54" stroke="var(--rose)" strokeWidth="2" strokeLinecap="round" />
-        <line className="drop d2" x1="30" y1="44" x2="26" y2="54" stroke="var(--rose)" strokeWidth="2" strokeLinecap="round" />
-        <line className="drop d3" x1="46" y1="44" x2="42" y2="54" stroke="var(--rose)" strokeWidth="2" strokeLinecap="round" />
-        <text x="-4" y="74" fontSize="10" fill="var(--muted)" style={{ letterSpacing: ".14em" }}>AUGUST MOOD</text>
-      </g>
-      {/* compass */}
-      <g transform="translate(52 66)" stroke="var(--gold)" fill="none" opacity=".8">
-        <circle r="18" /><path d="M0 -14 L4 0 L0 14 L-4 0 Z" fill="var(--gold)" />
-        <text y="-24" textAnchor="middle" fill="var(--gold)" fontSize="11">N</text>
-      </g>
-      {/* pins */}
-      {PINS.map((p) => {
-        const on = active === p.id; const isVenue = p.id === "venue";
-        return (
-          <g key={p.id} className="pinbtn" tabIndex={0} role="button"
-            aria-label={`${p.label} — ${p.km}`}
-            onClick={() => setActive(p.id)}
-            onKeyDown={(ev) => (ev.key === "Enter" || ev.key === " ") && setActive(p.id)}
-            transform={`translate(${p.x} ${p.y})`}>
-            <circle className="pinPulse" r="15" fill="none"
-              stroke={isVenue ? "var(--rose)" : "var(--gold)"} strokeWidth="1.5" />
-            <circle r={isVenue ? 17 : 13} fill={on ? "var(--gold)" : "var(--card)"}
-              stroke={isVenue ? "var(--rose)" : "var(--gold)"} strokeWidth={on ? 2.4 : 1.5} />
-            <text textAnchor="middle" dy="5" fontSize={isVenue ? 15 : 12}
-              style={{ pointerEvents: "none" }}>{p.icon}</text>
-            <text textAnchor="middle" y={isVenue ? 38 : 32} fontSize="11.5"
-              fill={on ? "var(--gold)" : "var(--muted)"} fontWeight={on ? 700 : 400}
-              style={{ pointerEvents: "none" }}>{p.label.split(" ").slice(0, 2).join(" ")}</text>
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
-
+/* ── components/venue/GuideTabs.jsx ─────────────────────────── */
 function GuideTabs() {
   const [tab, setTab] = useState("khaana");
   const TABS = [
@@ -1421,12 +1601,13 @@ function GuideTabs() {
 /* ════════════════════════════════════════════════════════════════════
    RSVP + BLESSINGS WALL (shared-visibility demo storage)
    ════════════════════════════════════════════════════════════════════ */
+/* ── components/rsvp/Rsvp.jsx ─────────────────────────── */
 function RSVP() {
   const [vibe, setVibe] = useState(null);
   const [name, setName] = useState("");
   const [count, setCount] = useState(2);
   const [meal, setMeal] = useState(MEALS[0]);
-  const [song, setSong] = useState("");
+  const [note, setNote] = useState("");
   const [done, setDone] = useState(null);
   const [tally, setTally] = useState(87);
   const btnRef = useRef(null);
@@ -1439,38 +1620,35 @@ function RSVP() {
     const newTally = tally + (attending ? count : 0);
     setTally(newTally); setDone({ name: name.trim(), count, attending });
     const log = await store.get("ps-rsvp-log-v1", []);
-    log.push({ name: name.trim(), vibe, count, meal, song, ts: Date.now() });
+    log.push({ name: name.trim(), vibe, count, meal, note, ts: Date.now() });
     await store.set("ps-rsvp-log-v1", log);
     await store.set("ps-rsvp-tally-v1", newTally);
   };
   if (done) return (
     <div className="card confirm">
       <div className="confRing"><Check size={38} strokeWidth={2.5} /></div>
-      <LotusBloom />
-      <Rings3D />
       <h3 className="display" style={{ fontSize: "clamp(24px,4vw,36px)" }}>
         Shubh Mangal <span className="goldtxt">SAVED-haan!</span> 🎉
       </h3>
       <p className="lede" style={{ margin: "10px auto 0" }}>
         {done.attending
           ? `${done.name}, you + ${done.count - 1 || "no"} more = counted, fed, and expected on the dance floor.`
-          : `${done.name}, we'll miss you badly — a laddoo courier is being arranged.`}
+          : `${done.name}, we'll miss you badly — we'll send you the photos.`}
       </p>
-      <p className="humor" style={{ marginTop: 14 }}>Pro tip: stretch before the Sangeet.</p>
-      <p className="meter"><b>{tally}+</b> guests have already said "yeta!"</p>
+      <p className="meter"><b>{tally}+</b> have already said they're coming</p>
     </div>
   );
   return (
     <div>
       <div className="vibes" role="radiogroup" aria-label="How are you attending?">
         {VIBES.map((v, i) => (
-          <Reveal as="button" key={v.id} delay={i * 70} role="radio" aria-checked={vibe === v.id}
+          <button key={v.id} style={{ animationDelay: `${i * 70}ms` }} role="radio" aria-checked={vibe === v.id}
             className={`vibe ${vibe === v.id ? "on" : ""}`} onClick={() => setVibe(v.id)}>
             <span className="ve" aria-hidden="true">{v.emoji}</span>
             <h4 className="display">{v.title}</h4>
             <p>{v.sub}</p>
             <span className="tick"><Check size={13} /></span>
-          </Reveal>
+          </button>
         ))}
       </div>
       <div className="formRow">
@@ -1480,7 +1658,7 @@ function RSVP() {
             placeholder="e.g. Sneha Khot-Magadum" onChange={(e) => setName(e.target.value)} />
         </div>
         <div className="field">
-          <label>Total jankar (people)</label>
+          <label>How many of you?</label>
           <div className="step">
             <button aria-label="Fewer guests" onClick={() => setCount((c) => Math.max(1, c - 1))}><Minus size={16} /></button>
             <b className="display">{count}</b>
@@ -1499,9 +1677,10 @@ function RSVP() {
           </div>
         </div>
         <div className="field">
-          <label htmlFor="ps-song">One song you WILL dance to</label>
-          <input id="ps-song" className="input" value={song} maxLength={64}
-            placeholder="DJ takes bribes in Kunda" onChange={(e) => setSong(e.target.value)} />
+          <label htmlFor="ps-note">Anything we should know?</label>
+          <input id="ps-note" className="input" value={note} maxLength={90}
+            placeholder="Travelling with elders / need help with stairs / arriving late"
+            onChange={(e) => setNote(e.target.value)} />
         </div>
       </div>
       <button ref={btnRef} className="btn solid" style={{ fontSize: 15, padding: "14px 26px" }}
@@ -1510,26 +1689,33 @@ function RSVP() {
         <PartyPopper size={16} /> Pakka done ✓
       </button>
       <p className="privacyNote" style={{ marginTop: 12 }}>
-        Demo note: RSVPs & the guest tally are stored in this artifact's shared space —
-        counts are visible to everyone viewing this invite.
+        Your RSVP lands straight on the family guest list — the tally above updates live.
       </p>
     </div>
   );
 }
-
+/* ── components/wall/BlessingsWall.jsx ─────────────────────────── */
 function BlessingsWall() {
   const [items, setItems] = useState(SEED_BLESSINGS);
   const [name, setName] = useState("");
   const [msg, setMsg] = useState("");
   const [sent, setSent] = useState(false);
   useEffect(() => {
-    store.get("ps-blessings-v1", []).then((saved) =>
-      setItems([...(Array.isArray(saved) ? saved : []), ...SEED_BLESSINGS]));
+    store.get("ps-blessings-v1", []).then((saved) => {
+      const live = (Array.isArray(saved) ? saved : []).filter((b) => !b.hidden);
+      setItems([...live, ...SEED_BLESSINGS]);
+    });
   }, []);
   const addEmoji = (e) => setMsg((m) => (m + " " + e).trim().slice(0, 160));
   const post = async () => {
     if (!msg.trim()) return;
-    const entry = { n: (name.trim() || "Someone lovely").slice(0, 30), m: msg.trim().slice(0, 160), c: (Math.random() * 4) | 0, ts: Date.now() };
+    const entry = {
+      id: `b${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+      who: (name.trim() || "Someone lovely").slice(0, 30),
+      txt: msg.trim().slice(0, 160),
+      c: (Math.random() * 4) | 0,
+      ts: Date.now(),
+    };
     const next = [entry, ...items];
     setItems(next); setMsg(""); setSent(true);
     setTimeout(() => setSent(false), 2500);
@@ -1571,15 +1757,14 @@ function BlessingsWall() {
           </button>
         </div>
         <p className="privacyNote" style={{ marginTop: 12 }}>
-          <Mic size={11} style={{ verticalAlign: "-1px" }} /> Voice blessings? There's a mic booth at
-          the venue. And yes — this wall is public to everyone opening this invite. Bless responsibly.
+          Everyone opening this invite can read the wall — so keep it lovely.
         </p>
       </div>
       <div className="wall">
         {items.map((b, i) => (
-          <div className="card bless" key={b.ts || `seed-${i}`}
-            style={{ background: tints[b.c % 4] }}>
-            <p>{b.m}</p><span>— {b.n}</span>
+          <div className="card bless" key={b.id || b.ts || `seed-${i}`}
+            style={{ background: tints[(b.c ?? i) % 4] }}>
+            <p>{b.txt}</p><span>— {b.who}</span>
           </div>
         ))}
       </div>
@@ -1590,308 +1775,520 @@ function BlessingsWall() {
 /* ════════════════════════════════════════════════════════════════════
    MAIN — full-screen story chapters
    ════════════════════════════════════════════════════════════════════ */
-const CHAPTERS = [
-  ["home", "Antarpat"], ["story", "Katha"], ["events", "Muhurat"],
-  ["venue", "Rasta"], ["rsvp", "Yeta ka?"], ["wall", "Ashirwad"],
-];
+/* ── components/live/LiveCeremony.jsx ─────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════
+   THE LIVE MUHURAT
+   On 09.08.2026 the invitation quietly changes. Anyone who couldn't
+   travel opens the link and joins the moment from wherever they are:
+   the antarpat drops on their screen at the muhurat, and they throw
+   akshata by tapping — their handful joins a live count shared by
+   every remote guest, then they leave a blessing.
 
-export default function WeddingInvitation() {
-  const [theme, setTheme] = useState("night");
-  const [sound, setSound] = useState(false);
-  const [scrollY, setScrollY] = useState(0);
-  const [vh, setVh] = useState(800);
-  const [activeCh, setActiveCh] = useState("home");
-  const [storyMode, setStoryMode] = useState("sweet");
-  const storyRef = useRef(null);
-  const [sg, setSg] = useState({ top: 0, h: 1 });
+   Timeline (all IST):
+     T-30 min  a gentle banner appears: "join the muhurat live"
+     T-2 min   the ceremony can be opened; a countdown runs
+     T-0       "शुभमंगल सावधान" — akshata throwing opens
+     T+30 min  the moment closes, blessings stay open
+
+   ?rehearsal=1 in the URL runs the whole thing any time, so you can
+   test it before the day (the counter is shared, so rehearsal taps do
+   add to the total — reset it in data/kv.json if you'd rather).
+   ═══════════════════════════════════════════════════════════════════ */
+
+const MUHURAT = new Date(CONFIG.weddingISO).getTime();
+const PRE_BANNER = 30 * 60 * 1000;
+const OPEN_EARLY = 2 * 60 * 1000;
+const WINDOW_END = 30 * 60 * 1000;
+
+function useNow(active) {
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
-    const measure = () => {
-      const el = storyRef.current, w = rootRef.current;
-      if (el && w) setSg({
-        top: el.getBoundingClientRect().top + w.scrollTop - w.getBoundingClientRect().top,
-        h: el.offsetHeight || 1,
-      });
-    };
-    measure();
-    const t = setTimeout(measure, 900);
-    window.addEventListener("resize", measure);
-    return () => { window.removeEventListener("resize", measure); clearTimeout(t); };
+    if (!active) return;
+    const t = setInterval(() => setNow(Date.now()), 500);
+    return () => clearInterval(t);
+  }, [active]);
+  return now;
+}
+
+/* a stable per-device id, so the "guests joined" count is people not taps */
+function deviceId() {
+  try {
+    const k = "aws-guest-id";
+    let v = sessionStorage.getItem(k);
+    if (!v) { v = Math.random().toString(36).slice(2, 10); sessionStorage.setItem(k, v); }
+    return v;
+  } catch { return Math.random().toString(36).slice(2, 10); }
+}
+
+function LiveCeremony({ burstRef, reduced }) {
+  const [rehearsal, setRehearsal] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+  const [count, setCount] = useState({ akshata: 0, guests: 0 });
+  const [mine, setMine] = useState(0);
+  const pending = useRef(0);
+  const idRef = useRef(null);
+
+  useEffect(() => {
+    setRehearsal(new URLSearchParams(window.location.search).get("rehearsal") === "1");
+    idRef.current = deviceId();
   }, []);
-  const [modeFlip, setModeFlip] = useState(false);
-  const [activePin, setActivePin] = useState("venue");
-  const [reduced, setReduced] = useState(false);
-  const rootRef = useRef(null);
-  const ambRef = useRef(null);
-  const burstOnce = useRef(false);
-  const tick = useRef(false);
 
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduced(mq.matches);
-    const onMq = (e) => setReduced(e.matches);
-    mq.addEventListener?.("change", onMq);
-    const onResize = () => setVh(window.innerHeight);
-    onResize(); window.addEventListener("resize", onResize);
-    return () => { window.removeEventListener("resize", onResize); mq.removeEventListener?.("change", onMq); };
+  const now = useNow(true);
+  const delta = rehearsal ? 0 : MUHURAT - now;
+  const showBanner = rehearsal || (delta < PRE_BANNER && delta > -WINDOW_END);
+  const canOpen = rehearsal || (delta < OPEN_EARLY && delta > -WINDOW_END);
+  const live = rehearsal || (delta <= 0 && delta > -WINDOW_END);
+
+  const refresh = useCallback(async () => {
+    try {
+      const r = await fetch("/api/ceremony", { cache: "no-store" });
+      if (r.ok) setCount(await r.json());
+    } catch {}
   }, []);
 
-  useEffect(() => () => ambRef.current?.stop(), []);
+  useEffect(() => { if (open) refresh(); }, [open, refresh]);
 
+  /* taps are batched — one request a second however fast they tap */
   useEffect(() => {
-    const secs = CHAPTERS.map(([id]) => document.getElementById(`ps-${id}`)).filter(Boolean);
-    const io = new IntersectionObserver(
-      (es) => es.forEach((e) => e.isIntersecting && setActiveCh(e.target.dataset.ch)),
-      { rootMargin: "-42% 0px -42% 0px" }
+    if (!open) return;
+    const t = setInterval(async () => {
+      const n = pending.current;
+      if (!n) { refresh(); return; }
+      pending.current = 0;
+      try {
+        const r = await fetch("/api/ceremony", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ n, who: idRef.current }),
+        });
+        if (r.ok) setCount(await r.json());
+      } catch {}
+    }, 1000);
+    return () => clearInterval(t);
+  }, [open, refresh]);
+
+  const throwAkshata = (e) => {
+    if (!live) return;
+    pending.current = Math.min(pending.current + 1, 30);
+    setMine((m) => m + 1);
+    setCount((c) => ({ ...c, akshata: c.akshata + 1 }));
+    if (burstRef?.current && !reduced) {
+      const r = e.currentTarget.getBoundingClientRect();
+      burstRef.current(r.left + r.width / 2, r.top + r.height / 2, 34);
+    }
+    if (navigator.vibrate) { try { navigator.vibrate(18); } catch {} }
+  };
+
+  if (!showBanner || dismissed) return null;
+
+  const mmss = () => {
+    const d = Math.max(0, delta);
+    const m = Math.floor(d / 60000), s = Math.floor((d % 60000) / 1000);
+    return `${m}:${String(s).padStart(2, "0")}`;
+  };
+
+  if (!open) {
+    return (
+      <div className="liveBar" role="status">
+        <span className="livePulse" aria-hidden="true" />
+        <div className="liveBarTxt">
+          <b>{live ? "The muhurat is happening now" : "Joining from afar?"}</b>
+          <i>{live
+            ? "Throw your akshata with everyone else"
+            : rehearsal ? "Rehearsal mode" : `Live ceremony opens in ${mmss()}`}</i>
+        </div>
+        <button className="btn solid tiny" onClick={() => setOpen(true)} disabled={!canOpen}>
+          {canOpen ? "Join live" : "Soon"}
+        </button>
+        <button className="liveX" onClick={() => setDismissed(true)} aria-label="Dismiss">
+          <X size={14} />
+        </button>
+      </div>
     );
-    secs.forEach((s) => io.observe(s));
-    return () => io.disconnect();
-  }, []);
-
-  const onScroll = (e) => {
-    const st = e.currentTarget.scrollTop;
-    if (!tick.current) {
-      tick.current = true;
-      requestAnimationFrame(() => { setScrollY(st); tick.current = false; });
-    }
-  };
-
-  const heroP = clamp(scrollY / (vh * 1.8 || 1), 0, 1);
-  useEffect(() => {
-    if (heroP > 0.5 && !burstOnce.current && fx.burst && !reduced) {
-      burstOnce.current = true;
-      fx.burst(window.innerWidth / 2, vh * 0.28);
-    }
-  }, [heroP, vh, reduced]);
-  const total = rootRef.current ? rootRef.current.scrollHeight - rootRef.current.clientHeight : 1;
-  const progress = clamp(scrollY / (total || 1), 0, 1);
-
-  const toggleSound = () => {
-    if (!sound) { ambRef.current = new Ambience(); ambRef.current.start(); }
-    else { ambRef.current?.stop(); ambRef.current = null; }
-    setSound(!sound);
-  };
-  const jump = (id) => document.getElementById(`ps-${id}`)?.scrollIntoView({ behavior: reduced ? "auto" : "smooth" });
-  const switchMode = (m) => {
-    if (m === storyMode) return;
-    setModeFlip(true);
-    setTimeout(() => { setStoryMode(m); setModeFlip(false); }, 240);
-  };
-  const nameReveal = clamp((heroP - 0.2) / 0.45, 0, 1);
+  }
 
   return (
-    <div ref={rootRef} className="pswrap grain" data-theme={theme} onScroll={onScroll}>
-      <style>{CSS}</style><style>{CSS2}</style>
-      <PetalCanvas reduced={reduced} />
-      <CursorGlow />
-      <div className="progress" style={{ width: `${progress * 100}%` }} />
+    <div className="liveWrap" role="dialog" aria-label="Live ceremony">
+      <button className="liveClose" onClick={() => setOpen(false)} aria-label="Close">
+        <X size={18} />
+      </button>
 
-      <header className="topbar">
-        <span className="mono" aria-label="Akshay and Shraddha monogram">A <Heart size={13} style={{ color: "var(--rose)", verticalAlign: "-1px" }} /> S</span>
-        <div style={{ display: "flex", gap: 10 }}>
-          <button className="iconbtn" onClick={toggleSound} aria-pressed={sound}
-            title="Toggle ambient tanpura + temple-bell soundscape (synthesized live)">
-            {sound ? <Music size={14} /> : <VolumeX size={14} />}
-            <span style={{ minWidth: 52, textAlign: "left" }}>{sound ? "Shanta…" : "Ambience"}</span>
-          </button>
-          <button className="iconbtn" onClick={() => setTheme(theme === "night" ? "day" : "night")}
-            aria-pressed={theme === "day"} title="Switch between Raat and Divas themes">
-            {theme === "night" ? <Sun size={14} /> : <Moon size={14} />}
-            {theme === "night" ? "Divas" : "Raat"}
-          </button>
-        </div>
-      </header>
+      <div className="liveInner">
+        {!live ? (
+          <>
+            <p className="liveEyebrow">The muhurat begins in</p>
+            <div className="liveClock display">{mmss()}</div>
+            <p className="liveNote dev">हळू हळू — stay with us</p>
+          </>
+        ) : (
+          <>
+            <p className="liveEyebrow"><Sparkles size={12} /> Live · {CONFIG.venue.name}</p>
+            <h2 className="liveTitle display dev">शुभमंगल सावधान</h2>
+            <p className="liveSub">The antarpat has dropped. Throw your akshata.</p>
 
-      <nav className="dots" aria-label="Chapters">
-        {CHAPTERS.map(([id, label]) => (
-          <button key={id} className={`dot ${activeCh === id ? "on" : ""}`}
-            onClick={() => jump(id)} aria-label={`Go to ${label}`}>
-            <span>{label}</span>
-          </button>
-        ))}
-      </nav>
+            <button className="akshataBtn" onClick={throwAkshata} aria-label="Throw akshata">
+              <span className="akshataGrain" aria-hidden="true">🌾</span>
+              <b>Throw akshata</b>
+              <i>tap as many times as your heart says</i>
+            </button>
 
-      {/* ── CH 1 · HERO / ANTARPAT ─────────────────────────────── */}
-      <section id="ps-home" data-ch="home" className="heroTrack">
-        <div className="heroPin">
-          <Mandala style={{ transform: `rotate(${scrollY * 0.02}deg) scale(${1 + heroP * 0.12})` }} />
-          <Scene3D heroP={heroP} theme={theme} reduced={reduced} />
-          <Diya style={{ left: "6%", bottom: "10%" }} />
-          <Diya style={{ right: "6%", bottom: "10%" }} slow />
-          <Diya style={{ left: "12%", top: "14%", width: 34 }} slow />
-          <Diya style={{ right: "12%", top: "14%", width: 34 }} />
-          <div className="heroInner" style={{
-            opacity: 0.25 + nameReveal * 0.75,
-            transform: `scale(${0.94 + nameReveal * 0.06}) translateY(${(1 - nameReveal) * 18}px)`,
-          }}>
-            <p className="invok dev">॥ श्री वीतरागाय नमः ॥ &nbsp;·&nbsp; ॥ श्री गणेशाय नमः ॥</p>
-            <h1 className="display names">
-              <span className={`goldtxt shimmer lts ${nameReveal > 0.45 ? "ltsIn" : ""}`}>{[...CONFIG.groom.en].map((c, i) => <span key={i} className="lt" style={{ "--i": i }}>{c}</span>)}</span>
-              <span className="amp display">&amp;</span>
-              <span className={`goldtxt shimmer lts ${nameReveal > 0.45 ? "ltsIn" : ""}`}>{[...CONFIG.bride.en].map((c, i) => <span key={i} className="lt" style={{ "--i": i + 2 }}>{c}</span>)}</span>
-            </h1>
-            <p className="dev namesDev">{CONFIG.groom.dev} ♥ {CONFIG.bride.dev}</p>
-            <p className="namesKan">{CONFIG.groom.kan} ♥ {CONFIG.bride.kan}</p>
-            <div className="dateRow display" aria-label="9 August 2026">
-              <span className="dateNum">09</span><span className="dateDot">✦</span>
-              <span className="dateNum">08</span><span className="dateDot">✦</span>
-              <span className="dateNum">2026</span>
+            <div className="liveCounts">
+              <div><b>{count.akshata.toLocaleString("en-IN")}</b><span>grains thrown</span></div>
+              <div><b>{count.guests.toLocaleString("en-IN")}</b><span>joining from afar</span></div>
+              {mine > 0 && <div><b>{mine}</b><span>yours</span></div>}
             </div>
-            <p className="muhurt">Sunday · {CONFIG.muhurtLabel} · {CONFIG.city}</p>
-            <p style={{ fontSize: 12.5, letterSpacing: ".04em", opacity: .88, margin: "12px auto 0", maxWidth: 560 }}>{CONFIG.groom.parents}</p>
-            <p style={{ fontSize: 12.5, letterSpacing: ".04em", opacity: .88, margin: "3px auto 0", maxWidth: 560 }}>{CONFIG.bride.parents}</p>
-            <p className="lede" style={{ margin: "18px auto 0", maxWidth: 520 }}>
-              Two traditions. Two languages. One decidedly <em>lai bhari</em> love story —
-              and you're invited to all of it.
+
+            <p className="liveNote">
+              <Heart size={11} /> Your blessing goes on the wall below — they'll read every one.
             </p>
-            <div className="heroCtas" style={{ opacity: nameReveal, pointerEvents: nameReveal > 0.3 ? "auto" : "none" }}>
-              <button className="btn solid" onClick={() => downloadICS(EVENTS[3])}>
-                <CalendarPlus size={15} /> Save the muhurat
-              </button>
-              <button className="btn ghost" onClick={() => jump("story")}>
-                <Sparkles size={15} /> Read the katha
-              </button>
-            </div>
-          </div>
-          <Curtain p={heroP} />
-          {heroP < 0.05 && (
-            <div className="scrollcue"><span>Scroll halu halu</span><ChevronDown size={16} /></div>
-          )}
-        </div>
-      </section>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+/* ── components/Invitation.jsx ─────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════
+   THE FLIGHT
+   The page is a single fixed viewport. Scrolling doesn't move content
+   past you — it moves *time* forward. One global progress value (0→1)
+   drives the 3D world, the SVG ribbon, the rangoli, the colours and
+   which act is on screen. Nothing is stitched; it's one continuous take.
+   ═══════════════════════════════════════════════════════════════════ */
 
-      {/* ── CH 2 · STORY ───────────────────────────────────────── */}
-      <RangoliDivider />
-      <section id="ps-story" data-ch="story" className="chapter">
-        <Reveal>
-          <p className="eyebrow"><Flame size={11} style={{ verticalAlign: "-1px" }} /> Chapter Two · The Katha</p>
-          <h2 className="display h2">Two homes, <span className="goldtxt">one story</span></h2>
-          <p className="lede">
-            A Digambar Jain household from Belagavi. A Maharashtrian household from Kolhapur.
-            120 km, two scripts, one shared weakness for sweets. Toggle for the version the aajis approve of.
-          </p>
-        </Reveal>
-        <Reveal delay={120}>
-          <div className="mode" role="radiogroup" aria-label="Story mode" style={{ marginTop: 24 }}>
-            <button className={storyMode === "sweet" ? "on" : ""} role="radio"
-              aria-checked={storyMode === "sweet"} onClick={() => switchMode("sweet")}>Aaji-approved 🤍</button>
-            <button className={storyMode === "spice" ? "on" : ""} role="radio"
-              aria-checked={storyMode === "spice"} onClick={() => switchMode("spice")}>Katta gossip 🌶️</button>
+const N = ACTS.length;
+const smooth = (t) => t * t * (3 - 2 * t);
+
+/* local 0→1 within an act, and how "present" that act is */
+function actState(prog, i) {
+  const band = 1 / N;
+  const local = clamp((prog - i * band) / band, 0, 1);
+  const inFade = smooth(clamp(local / 0.2, 0, 1));
+  const outFade = 1 - smooth(clamp((local - 0.78) / 0.22, 0, 1));
+  return { local, vis: Math.min(inFade, outFade) };
+}
+
+
+/* Scrollable content area.
+   Two rules make this behave:
+     1. It scrolls natively — real momentum on touch, real wheel response.
+     2. overscroll-behavior stays AUTO, so when you hit the bottom the
+        scroll chains straight on to the page and the journey continues.
+        (The earlier bug was `contain`, which swallowed the wheel and
+        froze the page — never set that here.)
+   A chevron appears while there's more to read below. */
+function ActFlow({ children }) {
+  const ref = useRef(null);
+  const [more, setMore] = useState(false);
+
+  const check = useCallback(() => {
+    const el = ref.current; if (!el) return;
+    setMore(el.scrollHeight - el.clientHeight - el.scrollTop > 12);
+  }, []);
+
+  useEffect(() => {
+    const el = ref.current; if (!el) return;
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    if (el.firstElementChild) ro.observe(el.firstElementChild);
+    const t = setTimeout(check, 500);
+    return () => { ro.disconnect(); clearTimeout(t); };
+  }, [check]);
+
+  return (
+    <div className="flowWrap">
+      <div className="flow" ref={ref} onScroll={check} tabIndex={0}>
+        <div className="flowInner">{children}</div>
+      </div>
+      <span className={`flowMore ${more ? "on" : ""}`} aria-hidden="true">
+        <ChevronDown size={16} />
+      </span>
+    </div>
+  );
+}
+
+function Panel({ i, prog, children, className = "" }) {
+  const { local, vis } = actState(prog, i);
+  if (vis <= 0.001) return null;                     // cheap, but never remounts the world
+  return (
+    <div className={`panel ${className}`} style={{
+      opacity: vis,
+      transform: `translate3d(0, ${(1 - vis) * 26}px, 0) scale(${0.965 + vis * 0.035})`,
+      pointerEvents: vis > 0.55 ? "auto" : "none",
+      filter: `blur(${(1 - vis) * 5}px)`,
+      "--local": local,
+    }}>
+      <div className="glass">{children}</div>
+    </div>
+  );
+}
+
+function Invitation() {
+  const [prog, setProg] = useState(0);
+  const [theme, setTheme] = useState("night");
+  const [party, setParty] = useState(false);
+  const [sound, setSound] = useState(false);
+  const [reduced, setReduced] = useState(false);
+  const [pin, setPin] = useState(PINS[0]?.id);
+  const burstRef = useRef(null);
+  const ambRef = useRef(null);
+  const lastAct = useRef(-1);
+
+  useEffect(() => {
+    setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }, []);
+
+  /* the single source of truth */
+  useEffect(() => {
+    let raf = 0;
+    const read = () => {
+      raf = 0;
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      setProg(max > 0 ? clamp(window.scrollY / max, 0, 1) : 0);
+    };
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(read); };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    read();
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
+
+  const act = Math.min(N - 1, Math.floor(prog * N));
+
+  /* every act boundary pops — the journey keeps celebrating itself */
+  useEffect(() => {
+    if (act !== lastAct.current) {
+      if (lastAct.current !== -1 && burstRef.current && !reduced) {
+        burstRef.current(window.innerWidth / 2, window.innerHeight * 0.42, 40);
+      }
+      lastAct.current = act;
+    }
+  }, [act, reduced]);
+
+  useEffect(() => () => ambRef.current?.stop(), []);
+  const toggleSound = () => {
+    if (!ambRef.current) ambRef.current = new Ambience();
+    if (sound) { ambRef.current.stop(); setSound(false); }
+    else { ambRef.current.start(); setSound(true); }
+  };
+
+  const goAct = useCallback((i) => {
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    window.scrollTo({ top: max * ((i + 0.35) / N), behavior: reduced ? "auto" : "smooth" });
+  }, [reduced]);
+
+  const heroP = clamp(prog * N * 1.55, 0, 1);   // curtain parts through act 0
+  const nameIn = clamp((heroP - 0.42) / 0.35, 0, 1);
+
+  return (
+    <>
+      {/* scroll distance only — the entire experience is fixed above it */}
+      <div className="scroller" style={{ height: `${N * 118}dvh` }} aria-hidden="true" />
+
+      <main className={`viewport grain ${party ? "party" : ""}`} data-theme={theme}>
+        <Stage3D prog={prog} theme={theme} reduced={reduced} party={party} />
+        <LiveRangoli prog={prog} party={party} />
+        <Confetti reduced={reduced} bindRef={burstRef} />
+        <LiveCeremony burstRef={burstRef} reduced={reduced} />
+
+        {/* ── chrome ─────────────────────────────────────────── */}
+        <header className="chrome">
+          <span className="mono" aria-label="Akshay and Shraddha">A <Heart size={12} /> S</span>
+          <div className="chromeBtns">
+            <button className={`ic ${party ? "on" : ""}`} onClick={() => setParty(p => !p)}
+              aria-pressed={party} aria-label="Party mode">
+              <PartyPopper size={16} />
+            </button>
+            <button className="ic" onClick={toggleSound} aria-pressed={sound} aria-label="Ambient sound">
+              {sound ? <Music size={16} /> : <VolumeX size={16} />}
+            </button>
+            <button className="ic" onClick={() => setTheme(t => t === "night" ? "day" : "night")}
+              aria-label="Theme">{theme === "night" ? <Sun size={16} /> : <Moon size={16} />}</button>
           </div>
-        </Reveal>
-        <div className="tl" ref={storyRef} style={{ position: "relative" }}>
-          <div className="vineWrap" aria-hidden="true">
-            <svg viewBox="0 0 70 1000" preserveAspectRatio="none">
-              <path pathLength="1" style={{
-                strokeDasharray: 1,
-                strokeDashoffset: 1 - clamp((scrollY + vh * 0.85 - sg.top) / (sg.h || 1), 0, 1),
-              }} d="M35 0 C56 90 14 180 35 270 C56 360 14 450 35 540 C56 630 14 720 35 810 C56 900 35 950 35 1000" />
-            </svg>
-          </div>
-          {STORY.map((s, i) => (
-            <Reveal className="tlItem" key={s.t} delay={i * 80}>
-              <div className="tlYear">{s.y}</div>
-              <h3 className="display tlTitle">{s.t}</h3>
-              <p className={`tlBody ${modeFlip ? "swap" : ""}`}>{s[storyMode]}</p>
-            </Reveal>
+        </header>
+
+        {/* act rail — doubles as the progress indicator */}
+        <nav className="rail" aria-label="Chapters">
+          {ACTS.map((a, i) => (
+            <button key={a.id} className={`railDot ${i === act ? "on" : ""}`}
+              onClick={() => goAct(i)} aria-label={`${a.label} — ${a.sub}`}>
+              <b>{a.label}</b>
+            </button>
           ))}
-        </div>
-        <Reveal delay={100}>
-          <div className="ornament display" style={{ justifyContent: "flex-start" }}>❁ how the day blends both ❁</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-            {RITUAL_CHIPS.map((c) => <span className="chip" key={c}>✦ {c}</span>)}
+          <span className="railFill" style={{ transform: `scaleY(${prog})` }} aria-hidden="true" />
+        </nav>
+
+        <PhraseTicker prog={prog} />
+
+        {/* ── ACT 0 · Antarpat ───────────────────────────────── */}
+        <Panel i={0} prog={prog} className="center">
+          <p className="invok dev">॥ श्री वीतरागाय नमः ॥ · ॥ श्री गणेशाय नमः ॥</p>
+
+          <div className="couple" style={{ opacity: nameIn }}>
+            <div className="side">
+              <h1 className="one display shimmer">{CONFIG.groom.en}</h1>
+              <p className="dev oneDev">{CONFIG.groom.dev}</p>
+              <p className="fam">{CONFIG.groom.parents}</p>
+              <p className="fam dim">{CONFIG.groom.siblings}</p>
+            </div>
+
+            <div className="weds" aria-hidden="true">
+              <span className="wline" /><em className="display">weds</em><span className="wline" />
+            </div>
+
+            <div className="side">
+              <h1 className="one display shimmer">{CONFIG.bride.en}</h1>
+              <p className="dev oneDev">{CONFIG.bride.dev}</p>
+              <p className="fam">{CONFIG.bride.parents}</p>
+              {CONFIG.bride.siblings && <p className="fam dim">{CONFIG.bride.siblings}</p>}
+            </div>
           </div>
-        </Reveal>
-      </section>
 
-      {/* ── CH 3 · ITINERARY + COUNTDOWN ───────────────────────── */}
-      <Marquee />
-      <RangoliDivider delay={120} />
-      <section id="ps-events" data-ch="events" className="chapter">
-        <Reveal>
-          <p className="eyebrow"><Clock size={11} style={{ verticalAlign: "-1px" }} /> Chapter Three · The Muhurat</p>
-          <h2 className="display h2">Three days of <span className="goldtxt">shubh chaos</span></h2>
-          <p className="lede">Every card adds itself to your calendar — because "arre, konta din hota?" is not an excuse we accept.</p>
-        </Reveal>
-        <Reveal delay={140}><Countdown /></Reveal>
-        <div className="grid">
-          {EVENTS.map((e, i) => <EventCard e={e} i={i} key={e.id} />)}
-        </div>
-      </section>
+          <div className="bigDate display" style={{ opacity: nameIn }}>09 · 08 · 2026</div>
+          <p className="muhurt" style={{ opacity: nameIn }}>Sunday · {CONFIG.muhurtLabel}</p>
+          <p className="venueLine" style={{ opacity: nameIn }}>
+            {CONFIG.venue.name} · {CONFIG.city}
+          </p>
 
-      {/* ── CH 4 · VENUE + GUIDE ───────────────────────────────── */}
-      <RangoliDivider />
-      <section id="ps-venue" data-ch="venue" className="chapter">
-        <Reveal>
-          <p className="eyebrow"><MapPin size={11} style={{ verticalAlign: "-1px" }} /> Chapter Four · The Rasta</p>
-          <h2 className="display h2">Getting to <span className="goldtxt">{CONFIG.venue.name}</span></h2>
-          <p className="lede">{CONFIG.venue.line}. Tap a pin — the map doubles as your weekend hit-list, out-of-towners.</p>
-        </Reveal>
-        <div className="venueGrid">
-          <Reveal className="card mapCard" delay={100}>
-            <RegionMap active={activePin} setActive={setActivePin} reduced={reduced} />
-            {(() => {
-              const p = PINS.find((x) => x.id === activePin);
-              return (
-                <div className="pinInfo card" key={p.id} style={{ border: "1px dashed var(--line)" }}>
-                  <b className="display" style={{ fontSize: 18 }}>{p.icon} {p.label}</b>
-                  <span style={{ color: "var(--muted)", fontSize: 13.5 }}>{p.sub}</span>
-                  <span style={{ color: "var(--gold)", fontSize: 12.5 }}>{p.km}</span>
-                  <a className="btn ghost" style={{ alignSelf: "flex-start", marginTop: 6, padding: "8px 14px", fontSize: 12.5 }}
-                    href={`https://maps.google.com/?q=${encodeURIComponent(p.q)}`}
-                    target="_blank" rel="noopener noreferrer">
-                    <MapPin size={13} /> Open in Maps
-                  </a>
+          <div className="cta" style={{ opacity: nameIn, pointerEvents: nameIn > .5 ? "auto" : "none" }}>
+            <button className="btn solid" onClick={() => downloadICS(EVENTS[1])}>
+              <CalendarPlus size={15} /> Save the date
+            </button>
+          </div>
+        </Panel>
+
+        {/* ── ACT 1 · Parivar ───────────────────────────────── */}
+        <Panel i={1} prog={prog}>
+          <p className="eyebrow"><Users size={11} /> Act Two · Parivar</p>
+          <h2 className="h2 display">Two families, <span className="shimmer">one day</span></h2>
+          <ActFlow>
+            <div className="famCard">
+              <span className="famTag">Groom's side</span>
+              <h3 className="display">{CONFIG.groom.family}</h3>
+              <p>{CONFIG.groom.parents}</p>
+              <p className="dim">{CONFIG.groom.siblings}</p>
+            </div>
+            <div className="famCard">
+              <span className="famTag">Bride's side</span>
+              <h3 className="display">{CONFIG.bride.family}</h3>
+              <p>{CONFIG.bride.parents}</p>
+            </div>
+            <p className="famJoin">{CONFIG.familiesLine}</p>
+
+            <div className="giftCard">
+              <Gift size={20} />
+              <h3 className="display">{CONFIG.giftNote}</h3>
+              <p>{CONFIG.giftSub}</p>
+            </div>
+
+            <p className="ritualLead">The rituals of the day</p>
+            <div className="chips">{RITUAL_CHIPS.map(c => <span className="chip" key={c}>✦ {c}</span>)}</div>
+          </ActFlow>
+        </Panel>
+
+        {/* ── ACT 2 · Muhurat ────────────────────────────────── */}
+        <Panel i={2} prog={prog}>
+          <p className="eyebrow"><Clock size={11} /> Act Three · Muhurat</p>
+          <h2 className="h2 display">One day. <span className="shimmer">Everything that matters.</span></h2>
+          <Countdown />
+          <ActFlow>
+            {EVENTS.map((e, i) => (
+              <article className="ev" key={e.id} style={{ animationDelay: `${i * 60}ms` }}>
+                <span className="evEmoji" aria-hidden="true">{e.emoji}</span>
+                <div className="evBody">
+                  <h3 className="display">{e.title}</h3>
+                  <span className="tag">{e.tag}</span>
+                  <p className="meta">{e.place}</p>
+                  <p className="dress"><b>Dress:</b> {e.dress}</p>
+                  <div className="evBtns">
+                    <a className="btn ghost" href={gcalUrl(e)} target="_blank" rel="noopener noreferrer">
+                      <CalendarPlus size={13} /> Google
+                    </a>
+                    <button className="btn ghost" onClick={() => downloadICS(e)}>
+                      <Download size={13} /> .ics
+                    </button>
+                  </div>
                 </div>
-              );
-            })()}
-          </Reveal>
-          <Reveal className="card" delay={200} style={{ padding: 24 }}>
-            <h3 className="display" style={{ fontSize: 22, marginBottom: 16 }}>The out-of-towner's guide</h3>
+              </article>
+            ))}
+          </ActFlow>
+        </Panel>
+
+        {/* ── ACT 3 · Rasta ──────────────────────────────────── */}
+        <Panel i={3} prog={prog}>
+          <p className="eyebrow"><MapPin size={11} /> Act Four · Rasta</p>
+          <h2 className="h2 display">Finding <span className="shimmer">the mandap</span></h2>
+          <div className="pinRow">
+            {PINS.map(p => (
+              <button key={p.id} className={`pinChip ${pin === p.id ? "on" : ""}`} onClick={() => setPin(p.id)}>
+                {p.label}
+              </button>
+            ))}
+          </div>
+          {PINS.filter(p => p.id === pin).map(p => (
+            <div className="pinCard" key={p.id}>
+              <h3 className="display">{p.label}</h3>
+              <p className="meta">{p.km}</p>
+              {p.note && <p>{p.note}</p>}
+              <a className="btn ghost" href={p.id === "venue" ? CONFIG.venue.maps : `https://maps.google.com/?q=${encodeURIComponent(p.q)}`}
+                target="_blank" rel="noopener noreferrer"><MapPin size={13} /> Open in Maps</a>
+            </div>
+          ))}
+          <ActFlow>
             <GuideTabs />
-            <div className="meta" style={{ marginTop: 18 }}>
-              <Hotel size={14} /> {CONFIG.hotel}
-            </div>
-            <div className="meta" style={{ marginTop: 8 }}>
-              <Umbrella size={14} /> August in Belagavi = drizzle with drama. Pack accordingly.
-            </div>
-          </Reveal>
-        </div>
-      </section>
+            <p className="note"><Umbrella size={12} /> August in this belt means sudden rain — umbrella in the bag.</p>
+            <p className="note"><Gift size={12} /> {CONFIG.giftSub}</p>
+          </ActFlow>
+        </Panel>
 
-      {/* ── CH 5 · RSVP ────────────────────────────────────────── */}
-      <RangoliDivider delay={120} />
-      <section id="ps-rsvp" data-ch="rsvp" className="chapter">
-        <Reveal>
-          <p className="eyebrow"><PartyPopper size={11} style={{ verticalAlign: "-1px" }} /> Chapter Five · The Big Question</p>
-          <h2 className="display h2">Yeta ka mag? <span className="goldtxt">(So… you're coming, right?)</span></h2>
-          <p className="lede">No boring forms. Pick your honest vibe — all four are valid life choices.</p>
-        </Reveal>
-        <Reveal delay={120}><RSVP /></Reveal>
-      </section>
+        {/* ── ACT 4 · Yeta ka? ───────────────────────────────── */}
+        <Panel i={4} prog={prog}>
+          <p className="eyebrow"><Sparkles size={11} /> Act Five · येता का मग?</p>
+          <h2 className="h2 display">So… <span className="shimmer">you're coming?</span></h2>
+          <ActFlow><RSVP /></ActFlow>
+        </Panel>
 
-      {/* ── CH 6 · BLESSINGS ───────────────────────────────────── */}
-      <RangoliDivider />
-      <section id="ps-wall" data-ch="wall" className="chapter">
-        <Reveal>
-          <p className="eyebrow"><Heart size={11} style={{ verticalAlign: "-1px" }} /> Chapter Six · Ashirwad</p>
-          <h2 className="display h2">The blessings <span className="goldtxt">wall</span></h2>
-          <p className="lede">Leave a line, an emoji, a threat to out-dance the groom. Collect good karma instantly.</p>
-        </Reveal>
-        <Reveal delay={120}><BlessingsWall /></Reveal>
-      </section>
+        {/* ── ACT 5 · Ashirwad ───────────────────────────────── */}
+        <Panel i={5} prog={prog}>
+          <p className="eyebrow"><Heart size={11} /> Act Six · Ashirwad</p>
+          <h2 className="h2 display">Leave a <span className="shimmer">blessing</span></h2>
+          <ActFlow>
+            <BlessingsWall />
+            <footer className="foot">
+              <p className="display shimmer">{CONFIG.hashtag}</p>
+              <p>{CONFIG.familiesLine}</p>
+              <p className="dev">स्वर्गीय आशीर्वाद 🪔 {CONFIG.remembrance.join(" · ")}</p>
+              <p className="giftFoot">{CONFIG.giftNote}</p>
+              <p>{CONFIG.contact}</p>
+            </footer>
+          </ActFlow>
+        </Panel>
 
-      <footer className="footer">
-        <div className="ornament" style={{ justifyContent: "center" }}>
-          <Diya style={{ position: "static", width: 40 }} />
-        </div>
-        <p className="display shimmer">{CONFIG.hashtag}</p>
-        <p style={{ marginTop: 8 }}>With love from {CONFIG.groom.family} &amp; {CONFIG.bride.family}</p>
-        <p style={{ marginTop: 4, fontSize: 13, opacity: .9 }}>{CONFIG.familiesLine} — ekach parivaar aata.</p>
-        <p style={{ marginTop: 4, fontSize: 13, opacity: .9 }}>Cheering squad: {CONFIG.siblings}</p>
-        <p className="dev" style={{ marginTop: 14, opacity: .85 }}>स्वर्गीय आशीर्वाद 🪔 {CONFIG.remembrance.join(" · ")}</p>
-        <p style={{ marginTop: 10 }}>{CONFIG.contact}</p>
-        <p style={{ marginTop: 16, opacity: .7 }}>Crafted with ♥, cutting chai, and a little haldi · Belagavi × Kolhapur · 09.08.2026</p>
-      </footer>
+        {/* the curtain stays — it's the one thing that opens onto everything */}
+        <Curtain p={heroP} />
+
+        {prog < 0.02 && (
+          <div className="cue">
+            <span className="dev">हळू हळू</span><i>scroll slowly</i><ChevronDown size={15} />
+          </div>
+        )}
+      </main>
+    </>
+  );
+}
+
+
+export default function WeddingInvitation() {
+  return (
+    <div className="pswrap">
+      <style>{CSS}</style>
+      <Invitation />
     </div>
   );
 }

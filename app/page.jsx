@@ -1,5 +1,5 @@
-import WeddingInvitation from "@/components/WeddingInvitation";
+import Invitation from "@/components/Invitation";
 
 export default function Page() {
-  return <WeddingInvitation />;
+  return <Invitation />;
 }
