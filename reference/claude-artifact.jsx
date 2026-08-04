@@ -5,11 +5,6 @@ import * as THREE from "three";
 /* ═══════════════════════════════════════════════════════════════════
    AKSHAY ♥ SHRADDHA · 09.08.2026
    Smt. Malini Patil Bhavan · Gavani, Belagavi
-
-   An ordinary scrolling page over a fixed 3D backdrop. Scroll progress
-   is written to CSS variables in one rAF loop, so scrolling triggers no
-   React re-renders. Blur effects are desktop-only; the scene renders at
-   1x / 30fps on phones.
    ═══════════════════════════════════════════════════════════════════ */
 
 const CSS = `
@@ -45,7 +40,7 @@ const CSS = `
 
 .pswrap *, .root * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
-.pswrap-html-unused {
+.pswrap-doc {
   scroll-behavior: smooth;
   /* the rail and chrome are fixed; keep anchor jumps clear of them */
   scroll-padding-top: 66px;
@@ -58,7 +53,7 @@ const CSS = `
   font-family: var(--font-body);
   font-weight: 300;
   line-height: 1.6;
-  overflow-x: hidden;
+  overflow-x: clip;   /* 'hidden' here would break position:sticky */
 }
 
 .display { font-family: var(--font-display); font-weight: 400; }
@@ -105,17 +100,29 @@ const CSS = `
   contain-intrinsic-size: auto 900px;
 }
 .act.hero {
-  min-height: 100dvh;
-  justify-content: center;
-  padding-top: calc(72px + var(--safe-t));
+  /* a scroll track — the pin inside it is what you actually see */
+  display: block;
+  width: 100%;
+  max-width: none;
+  height: 235dvh;
+  padding: 0;
   content-visibility: visible;
+}
+.heroPin {
+  position: sticky; top: 0;
+  height: 100dvh;
+  width: min(100% - 24px, 640px);
+  margin: 0 auto;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: calc(64px + var(--safe-t)) 0 72px;
 }
 
 .heroInner {
   display: flex; flex-direction: column; gap: 9px; text-align: center;
-  /* fades up as the curtain parts */
-  opacity: clamp(0, calc((var(--heroP) - .28) * 3), 1);
-  transform: translate3d(0, calc((1 - clamp(0, calc((var(--heroP) - .28) * 3), 1)) * 14px), 0);
+  width: 100%;
+  /* fades in behind the parting cloth — it never moves */
+  opacity: clamp(0, calc((var(--heroP) - .18) * 3.4), 1);
 }
 
 .eyebrow {
@@ -302,7 +309,8 @@ const CSS = `
 /* The antarpat. --heroP (0→1) is written by the scroll loop; the easing
    and both cloth transforms are pure CSS, so parting it costs nothing. */
 .curtain {
-  position: fixed; inset: 0; z-index: 12; pointer-events: none; overflow: hidden;
+  position: absolute; inset: 0 calc(50% - 50vw); z-index: 12;
+  pointer-events: none; overflow: hidden;
   --open: clamp(0, calc((var(--heroP) - .10) * 2.1), 1);
   opacity: clamp(0, calc((1 - var(--heroP)) * 6), 1);
   visibility: visible;
@@ -593,6 +601,108 @@ const CSS = `
 
 /* tap-anywhere confetti canvas */
 .confetti { position: fixed; inset: 0; z-index: 14; pointer-events: none; width: 100%; height: 100%; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   THE REGION MAP — drawn, not embedded. No tiles, no API key, and it
+   still works when the venue has no signal.
+   ═══════════════════════════════════════════════════════════════════ */
+.mapWrap { display: flex; flex-direction: column; gap: 7px; }
+.regionMap {
+  display: block; width: 100%; height: auto;
+  border-radius: 16px; border: 1px solid var(--line);
+  background: var(--card);
+  overflow: visible;
+}
+.mapHint {
+  font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--muted); text-align: center;
+}
+
+.regionMap .ridge { fill: var(--emerald); }
+.regionMap .ridge.far { opacity: .16; }
+.regionMap .ridge.mid { opacity: .22; }
+.regionMap .ridge.near { opacity: .3; }
+.root[data-theme='day'] .regionMap .ridge.far { opacity: .2; }
+
+.regionMap .river { fill: none; stroke: url(#riverG); stroke-width: 7; stroke-linecap: round; }
+.regionMap .river.thin { stroke-width: 4; opacity: .7; }
+
+.regionMap .border {
+  fill: none; stroke: var(--rose); stroke-width: 1.2;
+  stroke-dasharray: 7 6; opacity: .55;
+}
+.regionMap .stateLabel {
+  font-family: var(--font-body); font-size: 8.5px; letter-spacing: .22em;
+  fill: var(--rose); opacity: .75;
+}
+
+.regionMap .road { fill: none; stroke: var(--gold); stroke-width: 4.5; opacity: .28; stroke-linecap: round; }
+.regionMap .roadDash {
+  fill: none; stroke: var(--gold2); stroke-width: 1.6; stroke-linecap: round;
+  stroke-dasharray: 9 11; animation: roadFlow 2.4s linear infinite;
+}
+@keyframes roadFlow { to { stroke-dashoffset: -20; } }
+.regionMap .roadLabel {
+  font-family: var(--font-body); font-size: 8px; letter-spacing: .2em;
+  fill: var(--gold); opacity: .8;
+}
+
+.regionMap .cloud ellipse { fill: var(--ink); opacity: .13; }
+.regionMap .rain {
+  stroke: #7fc4ea; stroke-width: 1.4; stroke-linecap: round; opacity: .5;
+  animation: rainFall 1.5s linear infinite;
+}
+@keyframes rainFall {
+  0% { transform: translateY(-5px); opacity: 0; }
+  35% { opacity: .55; }
+  100% { transform: translateY(16px); opacity: 0; }
+}
+
+.regionMap .pin { cursor: pointer; }
+.regionMap .pin .hit { fill: transparent; }         /* generous touch target */
+.regionMap .pin .dot {
+  fill: var(--card); stroke: var(--gold); stroke-width: 2.4;
+  transition: fill .25s, stroke .25s;
+}
+.regionMap .pin.on .dot { fill: var(--gold); }
+.regionMap .pin.venue .dot { stroke: var(--rose); }
+.regionMap .pin.venue.on .dot { fill: var(--rose); }
+.regionMap .pin .star { fill: var(--rose); opacity: 0; transition: opacity .3s; }
+.regionMap .pin.venue .star { opacity: .95; }
+.regionMap .pin.venue .dot { r: 5; }
+.regionMap .pin .halo {
+  fill: none; stroke: var(--rose); stroke-width: 1.4;
+  transform-origin: center; animation: pinPulse 2.6s ease-out infinite;
+}
+@keyframes pinPulse {
+  0% { r: 9; opacity: .8; }
+  100% { r: 24; opacity: 0; }
+}
+.regionMap .pinLabel {
+  font-family: var(--font-display); font-size: 12px; fill: var(--ink);
+  paint-order: stroke; stroke: var(--card); stroke-width: 3px; stroke-linejoin: round;
+}
+.regionMap .pin.on .pinLabel { fill: var(--gold); }
+.regionMap .pin.venue .pinLabel { font-size: 13.5px; }
+.regionMap .pinSub {
+  font-family: var(--font-body); font-size: 8.5px; letter-spacing: .1em;
+  fill: var(--muted);
+  paint-order: stroke; stroke: var(--card); stroke-width: 3px; stroke-linejoin: round;
+}
+.regionMap .pin:focus-visible { outline: none; }
+.regionMap .pin:focus-visible .dot { stroke: var(--gold2); stroke-width: 4; }
+
+.regionMap .traveller { opacity: .95; }
+
+.regionMap .compass circle { fill: none; stroke: var(--line); stroke-width: 1; }
+.regionMap .compass .needle { fill: var(--rose); }
+.regionMap .compass text {
+  font-family: var(--font-body); font-size: 8px; letter-spacing: .1em; fill: var(--muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .regionMap .roadDash, .regionMap .rain, .regionMap .pin .halo { animation: none; }
+}
 
 `;
 
@@ -1517,6 +1627,132 @@ function Countdown() {
 }
 
 /* Itinerary card with per-event calendar actions. */
+/* ── components/venue/RegionMap.jsx ─────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════
+   The region, drawn rather than embedded.
+
+   Geography is real, north at the top: Kolhapur sits up in Maharashtra,
+   the state line runs below it, then Nippani on the highway, then the
+   venue at Gavani, and Belagavi with its airport furthest south. NH-48
+   threads all four together — which is genuinely how most guests will
+   arrive.
+
+   Portrait viewBox because this is read on a phone first. Everything is
+   flat vector illustration: no tiles to load, no API key, no cost, and
+   it keeps working when the venue has no signal.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* the highway, and the path the little rickshaw drives */
+const NH48 = "M262 44 C 246 104, 214 142, 196 190 C 182 226, 168 244, 156 268 C 140 300, 122 344, 110 392";
+
+const PLACES = {
+  kop:     { x: 262, y: 44,  label: "Kolhapur",        sub: "Maharashtra" },
+  nippani: { x: 196, y: 190, label: "Nippani",         sub: "last stop for supplies" },
+  venue:   { x: 156, y: 268, label: "Gavani",          sub: "the wedding" },
+  ixg:     { x: 110, y: 392, label: "Belagavi · IXG",  sub: "nearest airport" },
+};
+
+function RegionMap({ active, setActive, reduced }) {
+  return (
+    <div className="mapWrap">
+      <svg className="regionMap" viewBox="0 0 380 440" role="img"
+        aria-label="Map of the region: Kolhapur, Nippani, the venue at Gavani, and Belagavi airport, linked by highway NH-48.">
+        <defs>
+          <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--maroon)" stopOpacity=".16" />
+            <stop offset="100%" stopColor="var(--emerald)" stopOpacity=".1" />
+          </linearGradient>
+          <linearGradient id="riverG" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#3fa9e0" stopOpacity=".15" />
+            <stop offset="50%" stopColor="#3fa9e0" stopOpacity=".55" />
+            <stop offset="100%" stopColor="#3fa9e0" stopOpacity=".15" />
+          </linearGradient>
+        </defs>
+
+        <rect width="380" height="440" fill="url(#sky)" rx="16" />
+
+        {/* layered ghats — paper-cut silhouettes, far to near */}
+        <path className="ridge far"  d="M0 150 L46 118 L92 148 L140 106 L196 152 L250 116 L306 154 L380 118 L380 440 L0 440 Z" />
+        <path className="ridge mid"  d="M0 214 L58 178 L118 216 L182 170 L244 214 L310 180 L380 218 L380 440 L0 440 Z" />
+        <path className="ridge near" d="M0 300 L70 262 L142 302 L214 258 L286 300 L380 264 L380 440 L0 440 Z" />
+
+        {/* rivers */}
+        <path className="river" d="M-10 236 C 70 224, 130 258, 200 244 C 268 230, 320 256, 390 246" />
+        <path className="river thin" d="M-10 340 C 80 330, 150 356, 230 344 C 300 334, 340 352, 390 344" />
+
+        {/* the state line the two families meet across */}
+        <path className="border" d="M0 132 C 90 122, 180 146, 270 130 C 320 121, 350 128, 380 124" />
+        <text className="stateLabel" x="20" y="120">MAHARASHTRA</text>
+        <text className="stateLabel" x="20" y="152">KARNATAKA</text>
+
+        {/* NH-48 */}
+        <path className="road" d={NH48} />
+        <path className="roadDash" d={NH48} />
+        <text className="roadLabel" x="232" y="120" transform="rotate(58 232 120)">NH-48</text>
+
+        {/* a rickshaw making the trip, drawn flat and small */}
+        {!reduced && (
+          <g className="traveller">
+            <animateMotion dur="22s" repeatCount="indefinite" rotate="auto" path={NH48} />
+            <g transform="rotate(90)">
+              <path d="M-7 2 L-7 -3 Q-7 -7 -3 -7 L3 -7 Q7 -7 7 -2 L7 2 Z" fill="var(--gold)" />
+              <rect x="-7" y="2" width="14" height="2.4" rx="1" fill="var(--maroon)" />
+              <circle cx="-4" cy="4.6" r="1.9" fill="var(--ink)" opacity=".85" />
+              <circle cx="4" cy="4.6" r="1.9" fill="var(--ink)" opacity=".85" />
+            </g>
+          </g>
+        )}
+
+        {/* monsoon cloud — it is August, after all */}
+        {!reduced && (
+          <g className="cloud">
+            <ellipse cx="86" cy="62" rx="34" ry="14" />
+            <ellipse cx="66" cy="66" rx="22" ry="11" />
+            <ellipse cx="108" cy="68" rx="24" ry="11" />
+            {[0, 1, 2, 3].map((i) => (
+              <line key={i} className="rain" x1={64 + i * 15} y1="76" x2={61 + i * 15} y2="90"
+                style={{ animationDelay: `${i * 0.28}s` }} />
+            ))}
+          </g>
+        )}
+
+        {/* the four places */}
+        {PINS.filter((p) => PLACES[p.id]).map((p) => {
+          const g = PLACES[p.id];
+          const on = active === p.id;
+          const isVenue = p.id === "venue";
+          return (
+            <g key={p.id}
+              className={`pin ${on ? "on" : ""} ${isVenue ? "venue" : ""}`}
+              transform={`translate(${g.x} ${g.y})`}
+              role="button" tabIndex={0}
+              aria-label={`${g.label} — ${g.sub}`}
+              onClick={() => setActive(p.id)}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActive(p.id); } }}>
+              {isVenue && !reduced && <circle className="halo" r="13" />}
+              <circle className="hit" r="22" />
+              <circle className="dot" r={isVenue ? 7 : 5} />
+              {isVenue && <path className="star" d="M0 -13 L2.6 -5 L11 -5 L4.2 0 L6.8 8 L0 3 L-6.8 8 L-4.2 0 L-11 -5 L-2.6 -5 Z" />}
+              <text className="pinLabel" x={g.x > 200 ? -14 : 14} y="-9"
+                textAnchor={g.x > 200 ? "end" : "start"}>{g.label}</text>
+              <text className="pinSub" x={g.x > 200 ? -14 : 14} y="3"
+                textAnchor={g.x > 200 ? "end" : "start"}>{g.sub}</text>
+            </g>
+          );
+        })}
+
+        {/* compass */}
+        <g className="compass" transform="translate(340 400)">
+          <circle r="15" />
+          <path d="M0 -10 L3.4 1 L0 -1.6 L-3.4 1 Z" className="needle" />
+          <text y="-17" textAnchor="middle">N</text>
+        </g>
+      </svg>
+
+      <p className="mapHint">Tap a place for directions · north is up</p>
+    </div>
+  );
+}
 /* ── components/venue/GuideTabs.jsx ─────────────────────────── */
 function GuideTabs() {
   const [tab, setTab] = useState("khaana");
@@ -1945,7 +2181,7 @@ function Invitation() {
       const el = rootRef.current;
       if (el) {
         el.style.setProperty("--prog", p.toFixed(4));
-        const heroP = Math.min(1, window.scrollY / (window.innerHeight * 1.1));
+        const heroP = Math.min(1, window.scrollY / (window.innerHeight * 1.25));
         el.style.setProperty("--heroP", heroP.toFixed(4));
       }
 
@@ -2004,7 +2240,11 @@ function Invitation() {
       <span className="progressBar" aria-hidden="true" />
 
       {/* ── ONE · the antarpat ──────────────────────────────── */}
+      {/* The hero is a tall scroll track containing a sticky pin: the
+          invitation itself holds perfectly still while the antarpat
+          parts above it, and only starts moving once it's fully open. */}
       <section className="act hero" id="act-antarpat">
+        <div className="heroPin">
         <Curtain />
         <div className="heroInner">
           <p className="invok dev">॥ श्री वीतरागाय नमः ॥ · ॥ श्री गणेशाय नमः ॥</p>
@@ -2043,6 +2283,7 @@ function Invitation() {
         <button className="cue" onClick={() => goto("parivar")} aria-label="Scroll down">
           <span className="dev">हळू हळू</span><i>scroll slowly</i><ChevronDown size={16} />
         </button>
+        </div>
       </section>
 
       {/* ── TWO · families ──────────────────────────────────── */}
@@ -2103,6 +2344,8 @@ function Invitation() {
       <section className="act" id="act-rasta">
         <p className="eyebrow"><MapPin size={11} /> Four · Rasta</p>
         <h2 className="h2 display">Finding the mandap</h2>
+
+        <RegionMap active={pin} setActive={setPin} reduced={reduced} />
 
         <div className="pinRow">
           {PINS.map(p => (

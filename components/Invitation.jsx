@@ -12,6 +12,7 @@ import Stage3D from "@/components/stage/Stage3D";
 import { Confetti } from "@/components/stage/Overlay";
 import Curtain from "@/components/hero/Curtain";
 import Countdown from "@/components/events/Countdown";
+import RegionMap from "@/components/venue/RegionMap";
 import GuideTabs from "@/components/venue/GuideTabs";
 import RSVP from "@/components/rsvp/Rsvp";
 import BlessingsWall from "@/components/wall/BlessingsWall";
@@ -63,7 +64,7 @@ export default function Invitation() {
       const el = rootRef.current;
       if (el) {
         el.style.setProperty("--prog", p.toFixed(4));
-        const heroP = Math.min(1, window.scrollY / (window.innerHeight * 1.1));
+        const heroP = Math.min(1, window.scrollY / (window.innerHeight * 1.25));
         el.style.setProperty("--heroP", heroP.toFixed(4));
       }
 
@@ -122,7 +123,11 @@ export default function Invitation() {
       <span className="progressBar" aria-hidden="true" />
 
       {/* ── ONE · the antarpat ──────────────────────────────── */}
+      {/* The hero is a tall scroll track containing a sticky pin: the
+          invitation itself holds perfectly still while the antarpat
+          parts above it, and only starts moving once it's fully open. */}
       <section className="act hero" id="act-antarpat">
+        <div className="heroPin">
         <Curtain />
         <div className="heroInner">
           <p className="invok dev">॥ श्री वीतरागाय नमः ॥ · ॥ श्री गणेशाय नमः ॥</p>
@@ -161,6 +166,7 @@ export default function Invitation() {
         <button className="cue" onClick={() => goto("parivar")} aria-label="Scroll down">
           <span className="dev">हळू हळू</span><i>scroll slowly</i><ChevronDown size={16} />
         </button>
+        </div>
       </section>
 
       {/* ── TWO · families ──────────────────────────────────── */}
@@ -221,6 +227,8 @@ export default function Invitation() {
       <section className="act" id="act-rasta">
         <p className="eyebrow"><MapPin size={11} /> Four · Rasta</p>
         <h2 className="h2 display">Finding the mandap</h2>
+
+        <RegionMap active={pin} setActive={setPin} reduced={reduced} />
 
         <div className="pinRow">
           {PINS.map(p => (
