@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Music, VolumeX, Sun, Moon, MapPin, CalendarPlus, Download, ChevronDown,
-  Sparkles, Heart, PartyPopper, Clock, Umbrella, Gift, Users,
+  Sparkles, Heart, PartyPopper, Clock, Umbrella, Gift, Users, Navigation,
 } from "lucide-react";
 import { CONFIG, EVENTS, RITUAL_CHIPS, PINS, ACTS } from "@/lib/config";
 import { gcalUrl, downloadICS } from "@/lib/calendar";
@@ -12,6 +12,7 @@ import Stage3D from "@/components/stage/Stage3D";
 import { Confetti } from "@/components/stage/Overlay";
 import Curtain from "@/components/hero/Curtain";
 import Countdown from "@/components/events/Countdown";
+import RegionMap from "@/components/venue/RegionMap";
 import GuideTabs from "@/components/venue/GuideTabs";
 import RSVP from "@/components/rsvp/Rsvp";
 import BlessingsWall from "@/components/wall/BlessingsWall";
@@ -41,6 +42,7 @@ export default function Invitation() {
   const [reduced, setReduced] = useState(false);
   const [act, setAct] = useState(0);
   const [pin, setPin] = useState(PINS[0]?.id);
+  const [copied, setCopied] = useState(false);
 
   const progRef = useRef(0);
   const rootRef = useRef(null);
@@ -63,7 +65,7 @@ export default function Invitation() {
       const el = rootRef.current;
       if (el) {
         el.style.setProperty("--prog", p.toFixed(4));
-        const heroP = Math.min(1, window.scrollY / (window.innerHeight * 1.1));
+        const heroP = Math.min(1, window.scrollY / (window.innerHeight * 1.25));
         el.style.setProperty("--heroP", heroP.toFixed(4));
       }
 
@@ -122,10 +124,15 @@ export default function Invitation() {
       <span className="progressBar" aria-hidden="true" />
 
       {/* ── ONE · the antarpat ──────────────────────────────── */}
+      {/* The hero is a tall scroll track containing a sticky pin: the
+          invitation itself holds perfectly still while the antarpat
+          parts above it, and only starts moving once it's fully open. */}
       <section className="act hero" id="act-antarpat">
+        <div className="heroPin">
         <Curtain />
         <div className="heroInner">
-          <p className="invok dev">॥ श्री वीतरागाय नमः ॥ · ॥ श्री गणेशाय नमः ॥</p>
+          <p className="invok dev">॥ श्री वीतरागाय नमः ॥</p>
+          <p className="invokSub dev">णमोकार महामंत्र</p>
 
           <div className="couple">
             <div className="side">
@@ -141,12 +148,14 @@ export default function Invitation() {
               <h1 className="one display">{CONFIG.bride.en}</h1>
               <p className="dev oneDev">{CONFIG.bride.dev}</p>
               <p className="fam">{CONFIG.bride.parents}</p>
+              <p className="fam dim">{CONFIG.bride.siblings}</p>
             </div>
           </div>
 
           <div className="bigDate display">09 · 08 · 2026</div>
           <p className="muhurt">Sunday · {CONFIG.muhurtLabel}</p>
-          <p className="venueLine">{CONFIG.venue.name} · {CONFIG.city}</p>
+          <p className="venueLine">{CONFIG.venue.name}</p>
+          <p className="venueSub">{CONFIG.venue.area}</p>
 
           <div className="cta">
             <button className="btn solid" onClick={() => downloadICS(EVENTS[1])}>
@@ -161,6 +170,7 @@ export default function Invitation() {
         <button className="cue" onClick={() => goto("parivar")} aria-label="Scroll down">
           <span className="dev">हळू हळू</span><i>scroll slowly</i><ChevronDown size={16} />
         </button>
+        </div>
       </section>
 
       {/* ── TWO · families ──────────────────────────────────── */}
@@ -178,6 +188,7 @@ export default function Invitation() {
           <span className="famTag">Bride's side</span>
           <h3 className="display">{CONFIG.bride.family}</h3>
           <p>{CONFIG.bride.parents}</p>
+          <p className="dim">{CONFIG.bride.siblings}</p>
         </div>
         <p className="famJoin">{CONFIG.familiesLine}</p>
 
@@ -185,6 +196,25 @@ export default function Invitation() {
           <Gift size={20} />
           <h3 className="display">{CONFIG.giftNote}</h3>
           <p>{CONFIG.giftSub}</p>
+        </div>
+
+        <div className="crewCard">
+          <span className="crewTag">{CONFIG.cousinsLineEn}</span>
+          <p className="crewLine dev">{CONFIG.cousinsLine}</p>
+          <div className="kidsNames">
+            {CONFIG.cousins.map((c) => <span className="kidChip" key={c}>{c}</span>)}
+          </div>
+          <p className="kidsRole">{CONFIG.cousinsRole}</p>
+        </div>
+
+        <div className="kidsCard">
+          <span className="kidsTag">A message from the small people</span>
+          <p className="kidsLine dev">{CONFIG.kidsLine}</p>
+          <p className="kidsLineEn">{CONFIG.kidsLineEn}</p>
+          <div className="kidsNames">
+            {CONFIG.kids.map((k) => <span className="kidChip" key={k}>{k}</span>)}
+          </div>
+          <p className="kidsRole">{CONFIG.kidsRole}</p>
         </div>
 
         <p className="ritualLead">The rituals of the day</p>
@@ -222,21 +252,52 @@ export default function Invitation() {
         <p className="eyebrow"><MapPin size={11} /> Four · Rasta</p>
         <h2 className="h2 display">Finding the mandap</h2>
 
+        <RegionMap active={pin} setActive={setPin} reduced={reduced} />
+
         <div className="pinRow">
           {PINS.map(p => (
             <button key={p.id} className={`pinChip ${pin === p.id ? "on" : ""}`}
               onClick={() => setPin(p.id)}>{p.label}</button>
           ))}
         </div>
-        {PINS.filter(p => p.id === pin).map(p => (
-          <div className="pinCard" key={p.id}>
-            <h3 className="display">{p.label}</h3>
-            <p className="meta">{p.km}</p>
-            {p.note && <p>{p.note}</p>}
-            <a className="btn sm" href={p.id === "venue" ? CONFIG.venue.maps : `https://maps.google.com/?q=${encodeURIComponent(p.q)}`}
-              target="_blank" rel="noopener noreferrer"><MapPin size={13} /> Open in Maps</a>
-          </div>
-        ))}
+        {PINS.filter(p => p.id === pin).map(p => {
+          const isVenue = p.id === "venue";
+          return (
+            <div className="pinCard" key={p.id}>
+              <h3 className="display">{p.label}</h3>
+              <p className="meta">{p.km}</p>
+              {p.note && <p>{p.note}</p>}
+
+              <div className="evBtns">
+                <a className="btn sm"
+                  href={isVenue ? CONFIG.venue.maps : `https://maps.google.com/?q=${encodeURIComponent(p.q)}`}
+                  target="_blank" rel="noopener noreferrer">
+                  <MapPin size={13} /> Open in Maps
+                </a>
+                {isVenue && (
+                  <a className="btn sm"
+                    href={`https://www.google.com/maps/search/?api=1&query=${CONFIG.venue.geo}`}
+                    target="_blank" rel="noopener noreferrer">
+                    <Navigation size={13} /> Navigate by GPS
+                  </a>
+                )}
+              </div>
+
+              {isVenue && (
+                <>
+                  <p className="coords">
+                    {CONFIG.venue.geo}
+                    <button className="copyBtn" onClick={() => {
+                      navigator.clipboard?.writeText(CONFIG.venue.geo);
+                      setCopied(true); setTimeout(() => setCopied(false), 1800);
+                    }}>{copied ? "copied ✓" : "copy"}</button>
+                  </p>
+                  <p className="aliasNote">{CONFIG.venue.aliasNote}</p>
+                </>
+              )}
+            </div>
+          );
+        })}
 
         <GuideTabs />
         <p className="note"><Umbrella size={12} /> August in this belt means sudden rain — umbrella in the bag.</p>
