@@ -692,3 +692,90 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .regionMap .roadDash, .regionMap .rain, .regionMap .pin .halo { animation: none; }
 }
+
+/* ── a message from the small people ─────────────────────────── */
+.invokSub {
+  font-size: clamp(10px, 2.8vw, 12px); letter-spacing: .16em;
+  color: var(--muted); opacity: .85; margin-top: -4px;
+}
+
+.kidsCard {
+  text-align: center; padding: 18px 15px; border-radius: 16px;
+  border: 1px dashed var(--rose);
+  background: linear-gradient(160deg, rgba(255, 93, 143, .1), transparent);
+  position: relative;
+}
+.kidsTag {
+  display: inline-block; font-size: 9.5px; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--rose); margin-bottom: 8px;
+}
+.kidsLine {
+  font-family: var(--font-dev); font-size: clamp(19px, 6vw, 27px);
+  color: var(--gold); line-height: 1.35;
+}
+.kidsLineEn { font-size: 13px; color: var(--ink); opacity: .9; margin-top: 3px; }
+
+.kidsNames {
+  display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
+  margin: 13px 0 9px;
+}
+.kidChip {
+  font-family: var(--font-display); font-size: 13px;
+  padding: 6px 13px; border-radius: 999px;
+  color: var(--ink); background: var(--card);
+  border: 1px solid var(--line);
+  animation: kidPop .5s cubic-bezier(.2, .9, .3, 1.5) both;
+}
+.kidChip:nth-child(1) { animation-delay: .05s }
+.kidChip:nth-child(2) { animation-delay: .12s }
+.kidChip:nth-child(3) { animation-delay: .19s }
+.kidChip:nth-child(4) { animation-delay: .26s }
+.kidChip:nth-child(5) { animation-delay: .33s }
+.kidChip:nth-child(6) { animation-delay: .40s }
+@keyframes kidPop { from { opacity: 0; transform: scale(.8) translateY(6px); } }
+
+.kidsRole {
+  font-family: var(--font-display); font-style: italic;
+  font-size: 11.5px; color: var(--muted);
+}
+
+/* ── venue: our wording, the map's pin ───────────────────────── */
+.venueSub { font-size: 12px; color: var(--muted); letter-spacing: .04em; }
+.coords {
+  display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+  margin-top: 11px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px; color: var(--gold);
+}
+.copyBtn {
+  font-family: var(--font-body); font-size: 10.5px; letter-spacing: .1em;
+  text-transform: uppercase; cursor: pointer;
+  padding: 5px 10px; border-radius: 999px; min-height: 30px;
+  background: transparent; border: 1px solid var(--line); color: var(--muted);
+}
+.aliasNote {
+  margin-top: 9px; font-size: 11.5px; line-height: 1.5;
+  color: var(--muted); padding-left: 10px;
+  border-left: 2px solid var(--rose);
+}
+
+/* ── the cousin brigade ──────────────────────────────────────── */
+.crewCard {
+  text-align: center; padding: 17px 15px; border-radius: 16px;
+  border: 1px solid var(--line);
+  background: linear-gradient(160deg, rgba(35, 192, 143, .09), transparent);
+}
+.crewTag {
+  display: inline-block; font-size: 9.5px; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--emerald); margin-bottom: 6px;
+}
+.crewLine {
+  font-family: var(--font-dev); font-size: clamp(18px, 5.4vw, 25px);
+  color: var(--gold); line-height: 1.35;
+}
+/* the kid chips animate in one by one; cousins are a longer list, so
+   they share the same chip styling but settle a touch faster */
+.crewCard .kidChip { animation-duration: .4s; }
+.crewCard .kidChip:nth-child(7) { animation-delay: .47s }
+.crewCard .kidChip:nth-child(8) { animation-delay: .54s }
+.kidsCard .kidChip:nth-child(7) { animation-delay: .47s }
+.kidsCard .kidChip:nth-child(8) { animation-delay: .54s }

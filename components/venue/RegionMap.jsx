@@ -7,7 +7,7 @@ import { PINS } from "@/lib/config";
 
    Geography is real, north at the top: Kolhapur sits up in Maharashtra,
    the state line runs below it, then Nippani on the highway, then the
-   venue at Gavani, and Belagavi with its airport furthest south. NH-48
+   venue up on Tavandi hill, and Belagavi with its airport furthest south. NH-48
    threads all four together — which is genuinely how most guests will
    arrive.
 
@@ -22,7 +22,7 @@ const NH48 = "M262 44 C 246 104, 214 142, 196 190 C 182 226, 168 244, 156 268 C 
 const PLACES = {
   kop:     { x: 262, y: 44,  label: "Kolhapur",        sub: "Maharashtra" },
   nippani: { x: 196, y: 190, label: "Nippani",         sub: "last stop for supplies" },
-  venue:   { x: 156, y: 268, label: "Gavani",          sub: "the wedding" },
+  venue:   { x: 156, y: 268, label: "Tavandi",         sub: "Shri Kshetra Stavanidhi" },
   ixg:     { x: 110, y: 392, label: "Belagavi · IXG",  sub: "nearest airport" },
 };
 
@@ -30,7 +30,7 @@ export default function RegionMap({ active, setActive, reduced }) {
   return (
     <div className="mapWrap">
       <svg className="regionMap" viewBox="0 0 380 440" role="img"
-        aria-label="Map of the region: Kolhapur, Nippani, the venue at Gavani, and Belagavi airport, linked by highway NH-48.">
+        aria-label="Map of the region: Kolhapur, Nippani, the venue on Tavandi hill at Shri Kshetra Stavanidhi, and Belagavi airport, linked by highway NH-48.">
         <defs>
           <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="var(--maroon)" stopOpacity=".16" />

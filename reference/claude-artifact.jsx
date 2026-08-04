@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { CalendarPlus, Check, ChevronDown, Clock, Download, Gift, Heart, MapPin, Minus, Moon, Music, PartyPopper, Plane, Plus, Send, Shirt, Sparkles, Star, Sun, Umbrella, Users, Utensils, VolumeX, X } from "lucide-react";
+import { CalendarPlus, Check, ChevronDown, Clock, Download, Gift, Heart, MapPin, Minus, Moon, Music, Navigation, PartyPopper, Plane, Plus, Send, Shirt, Sparkles, Star, Sun, Umbrella, Users, Utensils, VolumeX, X } from "lucide-react";
 import * as THREE from "three";
 
 /* ═══════════════════════════════════════════════════════════════════
    AKSHAY ♥ SHRADDHA · 09.08.2026
-   Smt. Malini Patil Bhavan · Gavani, Belagavi
+   Smt. Malini Patil Bhavan · Tavandi Hill (Shri Kshetra Stavanidhi)
    ═══════════════════════════════════════════════════════════════════ */
 
 const CSS = `
@@ -704,6 +704,93 @@ const CSS = `
   .regionMap .roadDash, .regionMap .rain, .regionMap .pin .halo { animation: none; }
 }
 
+/* ── a message from the small people ─────────────────────────── */
+.invokSub {
+  font-size: clamp(10px, 2.8vw, 12px); letter-spacing: .16em;
+  color: var(--muted); opacity: .85; margin-top: -4px;
+}
+
+.kidsCard {
+  text-align: center; padding: 18px 15px; border-radius: 16px;
+  border: 1px dashed var(--rose);
+  background: linear-gradient(160deg, rgba(255, 93, 143, .1), transparent);
+  position: relative;
+}
+.kidsTag {
+  display: inline-block; font-size: 9.5px; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--rose); margin-bottom: 8px;
+}
+.kidsLine {
+  font-family: var(--font-dev); font-size: clamp(19px, 6vw, 27px);
+  color: var(--gold); line-height: 1.35;
+}
+.kidsLineEn { font-size: 13px; color: var(--ink); opacity: .9; margin-top: 3px; }
+
+.kidsNames {
+  display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
+  margin: 13px 0 9px;
+}
+.kidChip {
+  font-family: var(--font-display); font-size: 13px;
+  padding: 6px 13px; border-radius: 999px;
+  color: var(--ink); background: var(--card);
+  border: 1px solid var(--line);
+  animation: kidPop .5s cubic-bezier(.2, .9, .3, 1.5) both;
+}
+.kidChip:nth-child(1) { animation-delay: .05s }
+.kidChip:nth-child(2) { animation-delay: .12s }
+.kidChip:nth-child(3) { animation-delay: .19s }
+.kidChip:nth-child(4) { animation-delay: .26s }
+.kidChip:nth-child(5) { animation-delay: .33s }
+.kidChip:nth-child(6) { animation-delay: .40s }
+@keyframes kidPop { from { opacity: 0; transform: scale(.8) translateY(6px); } }
+
+.kidsRole {
+  font-family: var(--font-display); font-style: italic;
+  font-size: 11.5px; color: var(--muted);
+}
+
+/* ── venue: our wording, the map's pin ───────────────────────── */
+.venueSub { font-size: 12px; color: var(--muted); letter-spacing: .04em; }
+.coords {
+  display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+  margin-top: 11px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px; color: var(--gold);
+}
+.copyBtn {
+  font-family: var(--font-body); font-size: 10.5px; letter-spacing: .1em;
+  text-transform: uppercase; cursor: pointer;
+  padding: 5px 10px; border-radius: 999px; min-height: 30px;
+  background: transparent; border: 1px solid var(--line); color: var(--muted);
+}
+.aliasNote {
+  margin-top: 9px; font-size: 11.5px; line-height: 1.5;
+  color: var(--muted); padding-left: 10px;
+  border-left: 2px solid var(--rose);
+}
+
+/* ── the cousin brigade ──────────────────────────────────────── */
+.crewCard {
+  text-align: center; padding: 17px 15px; border-radius: 16px;
+  border: 1px solid var(--line);
+  background: linear-gradient(160deg, rgba(35, 192, 143, .09), transparent);
+}
+.crewTag {
+  display: inline-block; font-size: 9.5px; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--emerald); margin-bottom: 6px;
+}
+.crewLine {
+  font-family: var(--font-dev); font-size: clamp(18px, 5.4vw, 25px);
+  color: var(--gold); line-height: 1.35;
+}
+/* the kid chips animate in one by one; cousins are a longer list, so
+   they share the same chip styling but settle a touch faster */
+.crewCard .kidChip { animation-duration: .4s; }
+.crewCard .kidChip:nth-child(7) { animation-delay: .47s }
+.crewCard .kidChip:nth-child(8) { animation-delay: .54s }
+.kidsCard .kidChip:nth-child(7) { animation-delay: .47s }
+.kidsCard .kidChip:nth-child(8) { animation-delay: .54s }
+
 `;
 
 /* ── lib/config.js ─────────────────────────── */
@@ -722,30 +809,59 @@ const CONFIG = {
   bride: {
     en: "Shraddha", dev: "श्रद्धा", kan: "ಶ್ರದ್ಧಾ", surname: "Sangave",
     family: "Sangave parivaar",
-    // ✏️ TODO: append " & Late Smt. ______ Sangave" once the name is confirmed
-    parents: "Daughter of late smt Lata & Shri Babaso Sangave",
-    siblings: "",
+    parents: "Daughter of Shri Babaso Sangave & Late Smt. Lata Babaso Sangave",
+    siblings: "Sister of Sumeru Sangave — and aatya to his two little ones",
   },
 
-  /* Heavenly blessings — footer. ✏️ TODO: add Shraddha's late aai here,
-     format: "कै. सौ. ______ सांगवे · Late Smt. ______ Sangave" */
-  remembrance: ["कै. श्री. अशोक बंकापुरे · Late Shri Ashok Bankapure"],
-  familiesLine: "Bankapure · Magadum · Khot · Tirth  ×  Sangave",
+  /* Remembered with love in the footer. "Smt." is the honorific for a
+     married woman; "Shri" is the masculine one — so Lata-tai is Smt. */
+  remembrance: [
+    "कै. श्री. अशोक बंकापुरे · Late Shri Ashok Bankapure",
+    "कै. सौ. लता बाबासो सांगवे · Late Smt. Lata Babaso Sangave",
+  ],
+  familiesLine: "Bankapure · Magadum · Khot · Tirth · Kallimani · Ruge  ×  Sangave",
   hashtag: "#AkshayWedsShraddha",
+
+  /* The cousins — the ones who'll actually run the day. */
+  cousins: ["Sammed", "Darshan", "Sandesh", "Sujit", "Aishwarya", "Priya", "Rohit", "Arihant"],
+  cousinsLine: "भावंडं",
+  cousinsLineEn: "The cousin brigade",
+  cousinsRole: "Logistics, teasing, and dance-floor enforcement",
+
+  /* The nephews and nieces, who have appointed themselves the welcome
+     committee. They call Akshay "mama". */
+  kids: ["Saksham", "Shreeyan", "Pradyot", "Prahalya",
+         "Vrushabh", "Vidwat", "Padmaraj", "Prajyoti"],
+  kidsLine: "आमच्या मामाचं लग्न आहे!",
+  kidsLineEn: "It's our mama's wedding — you're coming, no?",
+  kidsRole: "Official welcome committee · haldi division",
 
   /* ✏️ TODO: replace with the real muhurat once the panchang is set. */
   weddingISO: "2026-08-09T11:47:00+05:30",
   muhurtLabel: "Shubh Muhurat · 11:47 AM",
 
+  /* THE VENUE — how we describe it vs. how devices navigate to it.
+     Google files this pin under the neighbouring village "Gavani", but
+     the place everyone knows is Smt. Malini Patil Bhavan up on Tavandi
+     hill (Shri Kshetra Stavanidhi). So: we show OUR wording everywhere,
+     and every link points at the exact pin or its coordinates — never
+     a text search, which could send someone to the wrong village. */
   venue: {
     name: "Smt. Malini Patil Bhavan",
-    area: "Gavani, Belagavi district, Karnataka 591237",
+    area: "Tavandi Hill · Shri Kshetra Stavanidhi",
+    district: "Belagavi district, Karnataka 591237",
     maps: "https://maps.app.goo.gl/GxjJJJymxGeagx9YA",
-    q: "SMT. MALINI PATIL BHAVAN Gavani Karnataka",
-    /* From the venue itself — genuinely useful for guests */
-    note: "On a hill with ample parking. Dining hall on the ground floor, main hall one floor up.",
+    lat: 16.3581223,
+    lng: 74.4080518,
+    /* universal fallback: works in Google Maps, Apple Maps, Ola, Uber —
+       anything that accepts a coordinate. */
+    geo: "16.3581223,74.4080518",
+    plusCode: "9C55+66V",
+    note: "Up on Tavandi. Ample parking at the top; dining hall on the ground floor, main hall one floor up.",
+    /* shown near the map links so nobody panics mid-journey */
+    aliasNote: "Your map app may show this area as ‘Gavani’ — that's the same place. Follow the pin.",
   },
-  city: "Gavani, Belagavi",
+  city: "Tavandi · Shri Kshetra Stavanidhi",
 
   /* ✏️ TODO: real number before sending this out. */
   contact: "RSVP · +91 98XXX XXXXX (Nishchay Bankapure)",
@@ -760,7 +876,7 @@ const EVENTS = [
     id: "haldi", emoji: "🪔", title: "Haldi",
     tag: "Turmeric, laughter, ruined clothes",
     date: "2026-08-09", start: "09:00", end: "10:30",
-    place: "Smt. Malini Patil Bhavan",
+    place: "Smt. Malini Patil Bhavan · Tavandi",
     dress: "Something you're happy to sacrifice to haldi. Yellow earns bonus points.",
   },
   {
@@ -779,9 +895,9 @@ const EVENTS = [
   },
 ];
 
-/* The rituals of the day, in order. */
+/* The rituals of the day, in order. Digambar Jain — no Ganesh puja. */
 const RITUAL_CHIPS = [
-  "Haldi", "Antarpat", "Mangalashtak", "Saat Phere", "Aashirwad", "Bhojan",
+  "Haldi", "Dev Darshan", "Navkar Mantra", "Antarpat", "Mangalashtak", "Phere", "Aashirwad", "Bhojan",
 ];
 
 /* Bilingual phrases — each shown with its meaning, never as wordplay.
@@ -809,13 +925,13 @@ const MEALS = ["Jain (no kanda-lasun)", "Regular veg"];
 const SEED_BLESSINGS = [
   { id: "s1", txt: "Two families, one very happy day. Blessings to you both. 🪔", who: "Bankapure kaka" },
   { id: "s2", txt: "सुखी संसार होवो! 🌸", who: "Sangave aatya" },
-  { id: "s3", txt: "See you on the hill in Gavani. Save us a seat near the food. 🍛", who: "Pune cousins" },
+  { id: "s3", txt: "See you up on Tavandi. Save us a seat near the food. 🍛", who: "Pune cousins" },
 ];
 
 const PINS = [
-  { id: "venue", label: "Smt. Malini Patil Bhavan", km: "Gavani · the whole day happens here",
-    q: "SMT. MALINI PATIL BHAVAN Gavani Karnataka",
-    note: "On a hill, ample parking. Dining hall downstairs, main hall upstairs." },
+  { id: "venue", label: "Smt. Malini Patil Bhavan", km: "Tavandi Hill · Shri Kshetra Stavanidhi",
+    q: null,   // never search by text — use the exact pin (see CONFIG.venue.maps)
+    note: "Up on Tavandi. Ample parking at the top; dining hall downstairs, main hall upstairs." },
   { id: "ixg", label: "Belagavi Airport (IXG)", km: "Nearest airport", q: "Belagavi Airport IXG" },
   { id: "kop", label: "Kolhapur", km: "Nearest big city on the Maharashtra side", q: "Kolhapur Maharashtra" },
   { id: "nippani", label: "Nippani", km: "Closest town for last-minute anything", q: "Nippani Karnataka" },
@@ -825,8 +941,8 @@ const GUIDE = {
   pravaas: [
     ["Fly", "Belagavi Airport (IXG) is the nearest. Kolhapur airport also works."],
     ["Train", "Ghataprabha / Kudchi and Miraj are the usable railheads; road the rest of the way."],
-    ["Drive", "Right off the Pune–Bengaluru NH-48 corridor, near Nippani. Easiest way in."],
-    ["At the venue", "It's up a hill — there's plenty of parking at the top."],
+    ["Drive", "Off the Pune–Bengaluru NH-48 corridor near Nippani, then up to Stavanidhi. Easiest way in."],
+    ["At the venue", "It's up Tavandi hill — plenty of parking at the top."],
   ],
   pehnava: [
     ["Haldi", "Old clothes. Turmeric does not negotiate."],
@@ -840,6 +956,7 @@ const GUIDE = {
   ],
   insider: [
     ["Stairs", "Main hall is one floor up. Tell us in advance if anyone needs help with stairs."],
+    ["Stavanidhi", "The hill is a Digambar Jain kshetra — worth the darshan while you're up there."],
     ["Halu halu", "Means 'slowly' in both Marathi and Kannada. The day's only speed limit."],
     ["No gifts", "Genuinely. Your presence is the whole gift."],
   ],
@@ -865,33 +982,69 @@ const to12h = (t) => { const [h, m] = t.split(":").map(Number); const ap = h >= 
    throw akshata + marigolds from a screen point. */
 const fx = { burst: null };
 /* ── lib/calendar.js ─────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════
+   Calendar links.
+
+   Both formats point at the venue's exact coordinates rather than a
+   text address — the pin sits on Tavandi but Google files the area
+   under a neighbouring village name, and a text search could send a
+   guest to the wrong place. Coordinates are unambiguous.
+   ═══════════════════════════════════════════════════════════════════ */
+
+const placeText = (e) => `${e.place}, ${CONFIG.venue.area}`;
+
 const gcalStamp = (date, time) => `${date.replace(/-/g, "")}T${time.replace(":", "")}00`;
+
 const gcalUrl = (e) => {
   const p = new URLSearchParams({
     action: "TEMPLATE",
     text: `${e.emoji} ${e.title} — ${CONFIG.hashtag}`,
     dates: `${gcalStamp(e.date, e.start)}/${gcalStamp(e.date, e.end)}`,
     ctz: "Asia/Kolkata",
-    details: `${e.tag}. ${e.note}`,
-    location: `${e.place}, ${CONFIG.city}`,
+    details: `${e.tag}\n\n${placeText(e)}\nMap: ${CONFIG.venue.maps}`,
+    location: `${placeText(e)} (${CONFIG.venue.geo})`,
   });
   return `https://calendar.google.com/calendar/render?${p.toString()}`;
 };
+
 const utcStamp = (date, time) =>
   new Date(`${date}T${time}:00+05:30`).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+
+/* RFC 5545 §3.3.11: backslash, semicolon, comma and newline must be
+   escaped inside a TEXT value. The venue coordinates contain a comma,
+   so skipping this would truncate the location in Apple Calendar. */
+const esc = (v) => String(v)
+  .replace(/\\/g, "\\\\")
+  .replace(/;/g, "\\;")
+  .replace(/,/g, "\\,")
+  .replace(/\r?\n/g, "\\n");
+
 const downloadICS = (e) => {
   const ics = [
-    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//AkshayShraddha//Wedding//EN", "BEGIN:VEVENT",
-    `UID:${e.id}-2026@parshva-sayali`, `DTSTAMP:${utcStamp("2026-07-30", "00:00")}`,
-    `DTSTART:${utcStamp(e.date, e.start)}`, `DTEND:${utcStamp(e.date, e.end)}`,
-    `SUMMARY:${e.emoji} ${e.title} — ${CONFIG.hashtag}`,
-    `DESCRIPTION:${e.tag}. ${e.note}`, `LOCATION:${e.place}, ${CONFIG.city}`,
-    "END:VEVENT", "END:VCALENDAR",
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//AkshayShraddha//Wedding//EN",
+    "CALSCALE:GREGORIAN",
+    "BEGIN:VEVENT",
+    `UID:${e.id}-2026@akshay-weds-shraddha`,
+    `DTSTAMP:${utcStamp("2026-08-01", "00:00")}`,
+    `DTSTART:${utcStamp(e.date, e.start)}`,
+    `DTEND:${utcStamp(e.date, e.end)}`,
+    `SUMMARY:${esc(`${e.emoji} ${e.title} — ${CONFIG.hashtag}`)}`,
+    `DESCRIPTION:${esc(`${e.tag}\n\nDress: ${e.dress}\nMap: ${CONFIG.venue.maps}`)}`,
+    `LOCATION:${esc(`${placeText(e)} (${CONFIG.venue.geo})`)}`,
+    /* the machine-readable pin — phones use this to drop a marker */
+    `GEO:${CONFIG.venue.lat};${CONFIG.venue.lng}`,
+    "END:VEVENT",
+    "END:VCALENDAR",
   ].join("\r\n");
-  const blob = new Blob([ics], { type: "text/calendar" });
+
+  const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.href = url; a.download = `${e.id}-parshva-sayali.ics`; a.click();
+  a.href = url;
+  a.download = `${e.id}-akshay-weds-shraddha.ics`;
+  a.click();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 };
 /* ── lib/store.js ─────────────────────────── */
@@ -1619,7 +1772,7 @@ function Countdown() {
         ))}
       </div>
       <p className="humor">
-        That's roughly <b>{chai}</b> cutting chais away — one hill in Gavani,
+        That's roughly <b>{chai}</b> cutting chais away — one hill at Tavandi,
         two families, and a whole lot of haldi.
       </p>
     </div>
@@ -1633,7 +1786,7 @@ function Countdown() {
 
    Geography is real, north at the top: Kolhapur sits up in Maharashtra,
    the state line runs below it, then Nippani on the highway, then the
-   venue at Gavani, and Belagavi with its airport furthest south. NH-48
+   venue up on Tavandi hill, and Belagavi with its airport furthest south. NH-48
    threads all four together — which is genuinely how most guests will
    arrive.
 
@@ -1648,7 +1801,7 @@ const NH48 = "M262 44 C 246 104, 214 142, 196 190 C 182 226, 168 244, 156 268 C 
 const PLACES = {
   kop:     { x: 262, y: 44,  label: "Kolhapur",        sub: "Maharashtra" },
   nippani: { x: 196, y: 190, label: "Nippani",         sub: "last stop for supplies" },
-  venue:   { x: 156, y: 268, label: "Gavani",          sub: "the wedding" },
+  venue:   { x: 156, y: 268, label: "Tavandi",         sub: "Shri Kshetra Stavanidhi" },
   ixg:     { x: 110, y: 392, label: "Belagavi · IXG",  sub: "nearest airport" },
 };
 
@@ -1656,7 +1809,7 @@ function RegionMap({ active, setActive, reduced }) {
   return (
     <div className="mapWrap">
       <svg className="regionMap" viewBox="0 0 380 440" role="img"
-        aria-label="Map of the region: Kolhapur, Nippani, the venue at Gavani, and Belagavi airport, linked by highway NH-48.">
+        aria-label="Map of the region: Kolhapur, Nippani, the venue on Tavandi hill at Shri Kshetra Stavanidhi, and Belagavi airport, linked by highway NH-48.">
         <defs>
           <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="var(--maroon)" stopOpacity=".16" />
@@ -2159,6 +2312,7 @@ function Invitation() {
   const [reduced, setReduced] = useState(false);
   const [act, setAct] = useState(0);
   const [pin, setPin] = useState(PINS[0]?.id);
+  const [copied, setCopied] = useState(false);
 
   const progRef = useRef(0);
   const rootRef = useRef(null);
@@ -2247,7 +2401,8 @@ function Invitation() {
         <div className="heroPin">
         <Curtain />
         <div className="heroInner">
-          <p className="invok dev">॥ श्री वीतरागाय नमः ॥ · ॥ श्री गणेशाय नमः ॥</p>
+          <p className="invok dev">॥ श्री वीतरागाय नमः ॥</p>
+          <p className="invokSub dev">णमोकार महामंत्र</p>
 
           <div className="couple">
             <div className="side">
@@ -2263,12 +2418,14 @@ function Invitation() {
               <h1 className="one display">{CONFIG.bride.en}</h1>
               <p className="dev oneDev">{CONFIG.bride.dev}</p>
               <p className="fam">{CONFIG.bride.parents}</p>
+              <p className="fam dim">{CONFIG.bride.siblings}</p>
             </div>
           </div>
 
           <div className="bigDate display">09 · 08 · 2026</div>
           <p className="muhurt">Sunday · {CONFIG.muhurtLabel}</p>
-          <p className="venueLine">{CONFIG.venue.name} · {CONFIG.city}</p>
+          <p className="venueLine">{CONFIG.venue.name}</p>
+          <p className="venueSub">{CONFIG.venue.area}</p>
 
           <div className="cta">
             <button className="btn solid" onClick={() => downloadICS(EVENTS[1])}>
@@ -2301,6 +2458,7 @@ function Invitation() {
           <span className="famTag">Bride's side</span>
           <h3 className="display">{CONFIG.bride.family}</h3>
           <p>{CONFIG.bride.parents}</p>
+          <p className="dim">{CONFIG.bride.siblings}</p>
         </div>
         <p className="famJoin">{CONFIG.familiesLine}</p>
 
@@ -2308,6 +2466,25 @@ function Invitation() {
           <Gift size={20} />
           <h3 className="display">{CONFIG.giftNote}</h3>
           <p>{CONFIG.giftSub}</p>
+        </div>
+
+        <div className="crewCard">
+          <span className="crewTag">{CONFIG.cousinsLineEn}</span>
+          <p className="crewLine dev">{CONFIG.cousinsLine}</p>
+          <div className="kidsNames">
+            {CONFIG.cousins.map((c) => <span className="kidChip" key={c}>{c}</span>)}
+          </div>
+          <p className="kidsRole">{CONFIG.cousinsRole}</p>
+        </div>
+
+        <div className="kidsCard">
+          <span className="kidsTag">A message from the small people</span>
+          <p className="kidsLine dev">{CONFIG.kidsLine}</p>
+          <p className="kidsLineEn">{CONFIG.kidsLineEn}</p>
+          <div className="kidsNames">
+            {CONFIG.kids.map((k) => <span className="kidChip" key={k}>{k}</span>)}
+          </div>
+          <p className="kidsRole">{CONFIG.kidsRole}</p>
         </div>
 
         <p className="ritualLead">The rituals of the day</p>
@@ -2353,15 +2530,44 @@ function Invitation() {
               onClick={() => setPin(p.id)}>{p.label}</button>
           ))}
         </div>
-        {PINS.filter(p => p.id === pin).map(p => (
-          <div className="pinCard" key={p.id}>
-            <h3 className="display">{p.label}</h3>
-            <p className="meta">{p.km}</p>
-            {p.note && <p>{p.note}</p>}
-            <a className="btn sm" href={p.id === "venue" ? CONFIG.venue.maps : `https://maps.google.com/?q=${encodeURIComponent(p.q)}`}
-              target="_blank" rel="noopener noreferrer"><MapPin size={13} /> Open in Maps</a>
-          </div>
-        ))}
+        {PINS.filter(p => p.id === pin).map(p => {
+          const isVenue = p.id === "venue";
+          return (
+            <div className="pinCard" key={p.id}>
+              <h3 className="display">{p.label}</h3>
+              <p className="meta">{p.km}</p>
+              {p.note && <p>{p.note}</p>}
+
+              <div className="evBtns">
+                <a className="btn sm"
+                  href={isVenue ? CONFIG.venue.maps : `https://maps.google.com/?q=${encodeURIComponent(p.q)}`}
+                  target="_blank" rel="noopener noreferrer">
+                  <MapPin size={13} /> Open in Maps
+                </a>
+                {isVenue && (
+                  <a className="btn sm"
+                    href={`https://www.google.com/maps/search/?api=1&query=${CONFIG.venue.geo}`}
+                    target="_blank" rel="noopener noreferrer">
+                    <Navigation size={13} /> Navigate by GPS
+                  </a>
+                )}
+              </div>
+
+              {isVenue && (
+                <>
+                  <p className="coords">
+                    {CONFIG.venue.geo}
+                    <button className="copyBtn" onClick={() => {
+                      navigator.clipboard?.writeText(CONFIG.venue.geo);
+                      setCopied(true); setTimeout(() => setCopied(false), 1800);
+                    }}>{copied ? "copied ✓" : "copy"}</button>
+                  </p>
+                  <p className="aliasNote">{CONFIG.venue.aliasNote}</p>
+                </>
+              )}
+            </div>
+          );
+        })}
 
         <GuideTabs />
         <p className="note"><Umbrella size={12} /> August in this belt means sudden rain — umbrella in the bag.</p>

@@ -26,7 +26,7 @@ export default function Countdown() {
         ))}
       </div>
       <p className="humor">
-        That's roughly <b>{chai}</b> cutting chais away — one hill in Gavani,
+        That's roughly <b>{chai}</b> cutting chais away — one hill at Tavandi,
         two families, and a whole lot of haldi.
       </p>
     </div>
