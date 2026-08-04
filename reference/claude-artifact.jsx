@@ -723,7 +723,7 @@ const CONFIG = {
     en: "Shraddha", dev: "श्रद्धा", kan: "ಶ್ರದ್ಧಾ", surname: "Sangave",
     family: "Sangave parivaar",
     // ✏️ TODO: append " & Late Smt. ______ Sangave" once the name is confirmed
-    parents: "Daughter of Shri Babaso Sangave",
+    parents: "Daughter of late smt Lata & Shri Babaso Sangave",
     siblings: "",
   },
 
