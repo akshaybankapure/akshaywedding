@@ -207,6 +207,15 @@ export default function Invitation() {
           <p className="kidsRole">{CONFIG.cousinsRole}</p>
         </div>
 
+        <div className="seniorCrewCard">
+          <span className="seniorCrewTag">{CONFIG.seniorCousinsLineEn}</span>
+          <p className="seniorCrewLine dev">{CONFIG.seniorCousinsLine}</p>
+          <div className="kidsNames">
+            {CONFIG.seniorCousins.map((c) => <span className="kidChip" key={c}>{c}</span>)}
+          </div>
+          <p className="seniorCrewRole">{CONFIG.seniorCousinsRole}</p>
+        </div>
+
         <div className="kidsCard">
           <span className="kidsTag">A message from the small people</span>
           <p className="kidsLine dev">{CONFIG.kidsLine}</p>

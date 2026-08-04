@@ -772,10 +772,29 @@ body {
   font-family: var(--font-dev); font-size: clamp(18px, 5.4vw, 25px);
   color: var(--gold); line-height: 1.35;
 }
+.seniorCrewCard {
+  text-align: center; padding: 16px 15px; border-radius: 16px;
+  border: 1px dashed rgba(208, 144, 16, .45);
+  background: linear-gradient(160deg, rgba(208, 144, 16, .12), transparent);
+  margin-top: 10px;
+}
+.seniorCrewTag {
+  display: inline-block; font-size: 9.5px; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--gold); margin-bottom: 6px;
+}
+.seniorCrewLine {
+  font-family: var(--font-dev); font-size: clamp(17px, 5vw, 23px);
+  color: var(--ink); line-height: 1.35;
+}
+.seniorCrewRole {
+  font-family: var(--font-display); font-style: italic;
+  font-size: 11.5px; color: var(--muted);
+}
 /* the kid chips animate in one by one; cousins are a longer list, so
    they share the same chip styling but settle a touch faster */
 .crewCard .kidChip { animation-duration: .4s; }
 .crewCard .kidChip:nth-child(7) { animation-delay: .47s }
 .crewCard .kidChip:nth-child(8) { animation-delay: .54s }
+.seniorCrewCard .kidChip { animation-duration: .4s; }
 .kidsCard .kidChip:nth-child(7) { animation-delay: .47s }
 .kidsCard .kidChip:nth-child(8) { animation-delay: .54s }
