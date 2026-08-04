@@ -781,7 +781,7 @@ const EVENTS = [
 
 /* The rituals of the day, in order. */
 const RITUAL_CHIPS = [
-  "Haldi", "Ganesh Puja", "Antarpat", "Mangalashtak", "Saat Phere", "Aashirwad", "Bhojan",
+  "Haldi", "Antarpat", "Mangalashtak", "Saat Phere", "Aashirwad", "Bhojan",
 ];
 
 /* Bilingual phrases — each shown with its meaning, never as wordplay.
