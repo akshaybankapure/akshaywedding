@@ -3,9 +3,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Music, VolumeX, Sun, Moon, MapPin, CalendarPlus, Download, ChevronDown,
-  Sparkles, Heart, PartyPopper, Clock, Umbrella, Gift, Users, Navigation,
+  Sparkles, Heart, PartyPopper, Clock, Umbrella, Gift, Users, Navigation, Languages, Flower2,
 } from "lucide-react";
 import { CONFIG, EVENTS, RITUAL_CHIPS, PINS, ACTS } from "@/lib/config";
+import { useLang, LANGS } from "@/lib/i18n";
 import { gcalUrl, downloadICS } from "@/lib/calendar";
 import { Ambience } from "@/lib/ambience";
 import Stage3D from "@/components/stage/Stage3D";
@@ -17,6 +18,8 @@ import GuideTabs from "@/components/venue/GuideTabs";
 import RSVP from "@/components/rsvp/Rsvp";
 import BlessingsWall from "@/components/wall/BlessingsWall";
 import LiveCeremony from "@/components/live/LiveCeremony";
+import LiveStream from "@/components/live/LiveStream";
+import JoinLive from "@/components/live/JoinLive";
 
 /* ═══════════════════════════════════════════════════════════════════
    Why this is an ordinary scrolling page.
@@ -36,6 +39,7 @@ import LiveCeremony from "@/components/live/LiveCeremony";
    ═══════════════════════════════════════════════════════════════════ */
 
 export default function Invitation() {
+  const { lang, t, setLang } = useLang();
   const [theme, setTheme] = useState("night");
   const [party, setParty] = useState(false);
   const [sound, setSound] = useState(false);
@@ -112,12 +116,21 @@ export default function Invitation() {
         <span className="mono">A <Heart size={12} /> S</span>
         <div className="chromeBtns">
           <button className={`ic ${party ? "on" : ""}`} onClick={() => setParty(p => !p)}
-            aria-pressed={party} aria-label="Party mode"><PartyPopper size={16} /></button>
-          <button className="ic" onClick={toggleSound} aria-pressed={sound} aria-label="Ambient sound">
+            aria-pressed={party} aria-label={t("partyMode")}><PartyPopper size={16} /></button>
+          <button className="ic" onClick={toggleSound} aria-pressed={sound} aria-label={t("ambientSound")}>
             {sound ? <Music size={16} /> : <VolumeX size={16} />}
           </button>
-          <button className="ic" onClick={() => setTheme(t => t === "night" ? "day" : "night")}
-            aria-label="Switch theme">{theme === "night" ? <Sun size={16} /> : <Moon size={16} />}</button>
+          <button className="ic" onClick={() => setTheme(v => v === "night" ? "day" : "night")}
+            aria-label={t("switchTheme")}>{theme === "night" ? <Sun size={16} /> : <Moon size={16} />}</button>
+
+          <div className="langWrap" role="group" aria-label={t("language")}>
+            <Languages size={13} className="langIcon" aria-hidden="true" />
+            {LANGS.map((l) => (
+              <button key={l.code} className={`langBtn ${lang === l.code ? "on" : ""}`}
+                onClick={() => setLang(l.code)} aria-pressed={lang === l.code} lang={l.code}
+                title={l.name}>{l.label}</button>
+            ))}
+          </div>
         </div>
       </header>
 
@@ -142,7 +155,7 @@ export default function Invitation() {
               <p className="fam dim">{CONFIG.groom.siblings}</p>
             </div>
 
-            <div className="weds"><span className="wline" /><em className="display">weds</em><span className="wline" /></div>
+            <div className="weds"><span className="wline" /><em className="display">{t("weds")}</em><span className="wline" /></div>
 
             <div className="side">
               <h1 className="one display">{CONFIG.bride.en}</h1>
@@ -153,45 +166,50 @@ export default function Invitation() {
           </div>
 
           <div className="bigDate display">09 · 08 · 2026</div>
-          <p className="muhurt">Sunday · {CONFIG.muhurtLabel}</p>
+          <p className="muhurt">{t("sunday")} · {CONFIG.muhurtLabel}</p>
           <p className="venueLine">{CONFIG.venue.name}</p>
           <p className="venueSub">{CONFIG.venue.area}</p>
 
           <div className="cta">
-            <button className="btn solid" onClick={() => downloadICS(EVENTS[1])}>
-              <CalendarPlus size={15} /> Save the date
-            </button>
+            <a className="btn solid" href={CONFIG.calendarUrl} target="_blank" rel="noopener noreferrer">
+              <CalendarPlus size={15} /> {t("saveTheDate")}
+            </a>
             <a className="btn" href={CONFIG.venue.maps} target="_blank" rel="noopener noreferrer">
-              <MapPin size={15} /> Venue
+              <MapPin size={15} /> {t("venueBtn")}
             </a>
           </div>
         </div>
 
         <button className="cue" onClick={() => goto("parivar")} aria-label="Scroll down">
-          <span className="dev">हळू हळू</span><i>scroll slowly</i><ChevronDown size={16} />
+          <span className="dev">हळू हळू</span><i>{t("scrollSlowly")}</i><ChevronDown size={16} />
         </button>
         </div>
       </section>
 
       {/* ── TWO · families ──────────────────────────────────── */}
       <section className="act" id="act-parivar">
-        <p className="eyebrow"><Users size={11} /> Two · Parivar</p>
-        <h2 className="h2 display">Two families, one day</h2>
+        <p className="eyebrow"><Users size={11} /> {t("parivarEyebrow")}</p>
+        <h2 className="h2 display">{t("twoFamilies")}</h2>
+
+        {/* the families, right at the top of the section */}
+        <div className="familiesBanner">
+          <span className="familiesTag">{t("ourFamilies")}</span>
+          <p className="familiesNames">{CONFIG.familiesLine}</p>
+        </div>
 
         <div className="famCard">
-          <span className="famTag">Groom's side</span>
+          <span className="famTag">{t("groomsSide")}</span>
           <h3 className="display">{CONFIG.groom.family}</h3>
           <p>{CONFIG.groom.parents}</p>
           <p className="dim">{CONFIG.groom.siblings}</p>
         </div>
         <div className="famCard">
-          <span className="famTag">Bride's side</span>
+          <span className="famTag">{t("bridesSide")}</span>
           <h3 className="display">{CONFIG.bride.family}</h3>
           <p>{CONFIG.bride.parents}</p>
           <p className="dim">{CONFIG.bride.siblings}</p>
         </div>
-        <p className="famJoin">{CONFIG.familiesLine}</p>
-
+        
         <div className="giftCard">
           <Gift size={20} />
           <h3 className="display">{CONFIG.giftNote}</h3>
@@ -226,15 +244,45 @@ export default function Invitation() {
           <p className="kidsRole">{CONFIG.kidsRole}</p>
         </div>
 
-        <p className="ritualLead">The rituals of the day</p>
-        <div className="chips">{RITUAL_CHIPS.map(c => <span className="chip" key={c}>✦ {c}</span>)}</div>
+      </section>
+
+      {/* ── स्वर्गीय आशीर्वाद · those we carry with us ────────── */}
+      <section className="act remembrance" id="act-ashirwad">
+        <p className="eyebrow"><Flower2 size={11} /> {t("ashirwadEyebrow")}</p>
+        <h2 className="h2 display dev">स्वर्गीय आशीर्वाद</h2>
+        <p className="rememberedHead">{t("rememberedHead")}</p>
+
+        <div className="remembranceCard">
+          <span className="diyaMark" aria-hidden="true">🪔</span>
+          <ul className="remembranceList">
+            {CONFIG.remembrance.map((r) => {
+              const [dev, en] = r.split(" · ");
+              return (
+                <li key={r}>
+                  <span className="remDev dev">{dev}</span>
+                  <span className="remEn">{en}</span>
+                </li>
+              );
+            })}
+          </ul>
+          <p className="remNote">{t("rememberedNote")}</p>
+        </div>
       </section>
 
       {/* ── THREE · the day ─────────────────────────────────── */}
       <section className="act" id="act-muhurat">
-        <p className="eyebrow"><Clock size={11} /> Three · Muhurat</p>
-        <h2 className="h2 display">One day. Everything that matters.</h2>
+        <p className="eyebrow"><Clock size={11} /> {t("muhuratEyebrow")}</p>
+        <h2 className="h2 display">{t("oneDay")}</h2>
+        {/* the timer, then the way in to the moment it counts down to */}
         <Countdown />
+
+        <a className="btn solid calAll" href={CONFIG.calendarUrl}
+          target="_blank" rel="noopener noreferrer">
+          <CalendarPlus size={15} /> Add the muhurat to your calendar
+        </a>
+
+        <JoinLive />
+        <LiveStream />
         {EVENTS.map((e) => (
           <article className="ev" key={e.id}>
             <span className="evEmoji" aria-hidden="true">{e.emoji}</span>
@@ -242,7 +290,7 @@ export default function Invitation() {
               <h3 className="display">{e.title}</h3>
               <span className="tag">{e.tag}</span>
               <p className="meta">{e.place}</p>
-              <p className="dress"><b>Dress:</b> {e.dress}</p>
+              <p className="dress"><b>{t("dress")}:</b> {e.dress}</p>
               <div className="evBtns">
                 <a className="btn sm" href={gcalUrl(e)} target="_blank" rel="noopener noreferrer">
                   <CalendarPlus size={13} /> Google
@@ -254,12 +302,22 @@ export default function Invitation() {
             </div>
           </article>
         ))}
+
+        {/* the sequence the day follows, under the timings it belongs to */}
+        <p className="ritualLead">{t("ritualsOfDay")}</p>
+        <div className="chips">
+          {RITUAL_CHIPS.map((c, i) => (
+            <span className="chip ritualChip" key={c}>
+              <span className="ritualNo">{i + 1}</span>{c}
+            </span>
+          ))}
+        </div>
       </section>
 
       {/* ── FOUR · getting there ────────────────────────────── */}
       <section className="act" id="act-rasta">
-        <p className="eyebrow"><MapPin size={11} /> Four · Rasta</p>
-        <h2 className="h2 display">Finding the mandap</h2>
+        <p className="eyebrow"><MapPin size={11} /> {t("rastaEyebrow")}</p>
+        <h2 className="h2 display">{t("findingMandap")}</h2>
 
         <RegionMap active={pin} setActive={setPin} reduced={reduced} />
 
@@ -281,13 +339,13 @@ export default function Invitation() {
                 <a className="btn sm"
                   href={isVenue ? CONFIG.venue.maps : `https://maps.google.com/?q=${encodeURIComponent(p.q)}`}
                   target="_blank" rel="noopener noreferrer">
-                  <MapPin size={13} /> Open in Maps
+                  <MapPin size={13} /> {t("openInMaps")}
                 </a>
                 {isVenue && (
                   <a className="btn sm"
                     href={`https://www.google.com/maps/search/?api=1&query=${CONFIG.venue.geo}`}
                     target="_blank" rel="noopener noreferrer">
-                    <Navigation size={13} /> Navigate by GPS
+                    <Navigation size={13} /> {t("navigateGps")}
                   </a>
                 )}
               </div>
@@ -299,7 +357,7 @@ export default function Invitation() {
                     <button className="copyBtn" onClick={() => {
                       navigator.clipboard?.writeText(CONFIG.venue.geo);
                       setCopied(true); setTimeout(() => setCopied(false), 1800);
-                    }}>{copied ? "copied ✓" : "copy"}</button>
+                    }}>{copied ? t("copied") : t("copy")}</button>
                   </p>
                   <p className="aliasNote">{CONFIG.venue.aliasNote}</p>
                 </>
@@ -315,21 +373,20 @@ export default function Invitation() {
 
       {/* ── FIVE · rsvp ─────────────────────────────────────── */}
       <section className="act" id="act-yeta">
-        <p className="eyebrow"><Sparkles size={11} /> Five · येता का मग?</p>
-        <h2 className="h2 display">So… you're coming?</h2>
+        <p className="eyebrow"><Sparkles size={11} /> {t("yetaEyebrow")}</p>
+        <h2 className="h2 display">{t("areYouComing")}</h2>
         <RSVP />
       </section>
 
       {/* ── SIX · blessings ─────────────────────────────────── */}
-      <section className="act" id="act-ashirwad">
-        <p className="eyebrow"><Heart size={11} /> Six · Ashirwad</p>
-        <h2 className="h2 display">Leave a blessing</h2>
+      <section className="act" id="act-wall">
+        <p className="eyebrow"><Heart size={11} /> {t("wallEyebrow")}</p>
+        <h2 className="h2 display">{t("leaveBlessing")}</h2>
         <BlessingsWall />
 
         <footer className="foot">
           <p className="display">{CONFIG.hashtag}</p>
           <p>{CONFIG.familiesLine}</p>
-          <p className="dev">स्वर्गीय आशीर्वाद 🪔 {CONFIG.remembrance.join(" · ")}</p>
           <p className="giftFoot">{CONFIG.giftNote}</p>
           <p>{CONFIG.contact}</p>
         </footer>
@@ -339,8 +396,8 @@ export default function Invitation() {
       <nav className="rail" aria-label="Sections">
         {ACTS.map((a, i) => (
           <button key={a.id} className={`railDot ${i === act ? "on" : ""}`}
-            onClick={() => goto(a.id)} aria-label={`${a.label} — ${a.sub}`}>
-            <b>{a.label}</b>
+            onClick={() => goto(a.id)} aria-label={t(a.key)}>
+            <b>{t(a.key)}</b>
           </button>
         ))}
       </nav>

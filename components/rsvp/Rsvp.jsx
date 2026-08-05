@@ -3,10 +3,12 @@
 import { useState, useEffect, useRef } from "react";
 import { PartyPopper, Check, Plus, Minus } from "lucide-react";
 import { VIBES, MEALS, CONFIG } from "@/lib/config";
+import { useLang } from "@/lib/i18n";
 import { clamp, fx } from "@/lib/helpers";
 import { rsvpApi } from "@/lib/store";
 
 export default function RSVP() {
+  const { t } = useLang();
   const [vibe, setVibe] = useState(null);
   const [name, setName] = useState("");
   const [count, setCount] = useState(2);
@@ -41,7 +43,7 @@ export default function RSVP() {
           ? `${done.name}, you + ${done.count - 1 || "no"} more = counted, fed, and expected on the dance floor.`
           : `${done.name}, we'll miss you badly — we'll send you the photos.`}
       </p>
-      {tally > 0 && <p className="meter"><b>{tally}</b> already coming</p>}
+      {tally > 0 && <p className="meter"><b>{tally}</b> {t("alreadyComing")}</p>}
       {saveErr && (
         <p className="meter" style={{ color: "var(--rose)" }}>
           We couldn't reach the server — please call {CONFIG.contact.replace("RSVP · ", "")} so we don't miss you.
@@ -64,12 +66,12 @@ export default function RSVP() {
       </div>
       <div className="formRow">
         <div className="field">
-          <label htmlFor="ps-name">Your good name</label>
+          <label htmlFor="ps-name">{t("yourName")}</label>
           <input id="ps-name" className="input" value={name} maxLength={48}
             placeholder="e.g. Sneha Khot-Magadum" onChange={(e) => setName(e.target.value)} />
         </div>
         <div className="field">
-          <label>How many of you?</label>
+          <label>{t("howMany")}</label>
           <div className="step">
             <button aria-label="Fewer guests" onClick={() => setCount((c) => Math.max(1, c - 1))}><Minus size={16} /></button>
             <b className="display">{count}</b>
@@ -79,7 +81,7 @@ export default function RSVP() {
       </div>
       <div className="formRow">
         <div className="field">
-          <label>Jevan preference (all pure veg)</label>
+          <label>{t("mealPref")}</label>
           <div className="seg" role="radiogroup" aria-label="Meal preference">
             {MEALS.map((m) => (
               <button key={m} role="radio" aria-checked={meal === m}
@@ -88,7 +90,7 @@ export default function RSVP() {
           </div>
         </div>
         <div className="field">
-          <label htmlFor="ps-note">Anything we should know?</label>
+          <label htmlFor="ps-note">{t("anythingKnow")}</label>
           <input id="ps-note" className="input" value={note} maxLength={90}
             placeholder="Travelling with elders / need help with stairs / arriving late"
             onChange={(e) => setNote(e.target.value)} />
@@ -97,7 +99,7 @@ export default function RSVP() {
       <button ref={btnRef} className="btn solid" style={{ fontSize: 15, padding: "14px 26px" }}
         disabled={!vibe || !name.trim()} onClick={submit}
         title={!vibe || !name.trim() ? "Pick a vibe + tell us your name" : "Lock it in"}>
-        <PartyPopper size={16} /> Pakka done ✓
+        <PartyPopper size={16} /> {t("sendRsvp")} ✓
       </button>
       <p className="privacyNote" style={{ marginTop: 12 }}>
         Your RSVP lands straight on the family guest list — the tally above updates live.

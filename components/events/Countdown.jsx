@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { CONFIG } from "@/lib/config";
+import { useLang } from "@/lib/i18n";
 import { pad2 } from "@/lib/helpers";
 
 export default function Countdown() {
+  const { t } = useLang();
   const target = new Date(CONFIG.weddingISO).getTime();
   const [now, setNow] = useState(Date.now());
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
@@ -21,12 +23,12 @@ export default function Countdown() {
   return (
     <div>
       <div className="count" role="timer" aria-label="Countdown to the wedding">
-        {[[d, "Divas"], [h, "Taas"], [m, "Minit"], [s, "Sekand"]].map(([v, l]) => (
+        {[[d, t("days")], [h, t("hours")], [m, t("minutes")], [s, t("seconds")]].map(([v, l]) => (
           <div className="tile" key={l}><b key={v} className="display">{pad2(v)}</b><span>{l}</span></div>
         ))}
       </div>
       <p className="humor">
-        That's roughly <b>{chai}</b> cutting chais away — one hill at Tavandi,
+        That's roughly <b>{chai}</b> cutting chais until the akshata — one hill at Tavandi,
         two families, and a whole lot of haldi.
       </p>
     </div>

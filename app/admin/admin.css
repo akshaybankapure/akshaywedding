@@ -93,3 +93,55 @@
 .adBless p { font-family: var(--font-display), Georgia, serif; font-size: 14.5px; }
 .adBlessFoot { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; gap: 10px; }
 .ad code { background: rgba(0,0,0,.35); padding: 2px 6px; border-radius: 5px; font-size: 12px; }
+
+.adPreview {
+  position: relative; width: 100%; aspect-ratio: 16/9;
+  border-radius: 10px; overflow: hidden; background: #000; margin-bottom: 14px;
+}
+.adPreview iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+
+/* ── helper guide ────────────────────────────────────────────── */
+.adHelp h2 { display: flex; align-items: center; gap: 7px; }
+.adSteps { margin: 10px 0 0 18px; display: flex; flex-direction: column; gap: 9px; font-size: 13.5px; }
+.adSteps li { padding-left: 4px; }
+.adSteps b { color: #f7d87c; font-weight: 500; }
+.adSteps i { color: #d6c9b4; }
+.adOkInline { color: #6fe0b4; }
+
+.adTip {
+  display: flex; gap: 8px; align-items: flex-start;
+  margin-top: 14px; padding: 10px 12px; border-radius: 10px;
+  background: rgba(255, 93, 143, .1); border: 1px solid rgba(255, 93, 143, .35);
+  font-size: 12.5px; color: #f0e9dc;
+}
+.adTip svg { flex: 0 0 auto; margin-top: 2px; color: #ff8fa8; }
+
+.adFaq { margin-top: 6px; }
+.adFaq dt {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 13px; color: #f7d87c; margin-top: 14px;
+}
+.adFaq dt:first-child { margin-top: 0; }
+.adFaq dd { margin: 4px 0 0; font-size: 13px; color: #a99a86; line-height: 1.6; }
+
+.adGuideCta {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 14px; flex-wrap: wrap;
+  border-color: rgba(227, 179, 65, .45);
+  background: linear-gradient(120deg, rgba(227, 179, 65, .12), transparent);
+}
+
+.adThanks {
+  text-align: center; font-family: var(--font-display), Georgia, serif;
+  font-style: italic; font-size: 14px; color: #a99a86;
+  margin: 24px 0 10px; line-height: 1.6;
+}
+
+@media print {
+  .adTopBtns, .adGuideCta { display: none; }
+  .ad { color: #000; max-width: none; }
+  .adCard { border-color: #ccc; background: none; break-inside: avoid; }
+  .adMuted, .adFaq dd { color: #444; }
+  .adFaq dt, .adSteps b, .ad h1, .ad h2 { color: #000; }
+  .adTip { background: #f4f4f4; border-color: #999; color: #000; }
+}
