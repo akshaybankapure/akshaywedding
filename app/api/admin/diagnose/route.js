@@ -16,7 +16,7 @@ const HINTS = {
 
 export async function GET() {
   const env = {
-    DB_HOST: process.env.DB_HOST || null,
+    DB_HOST: process.env.DB_HOST || 'localhost',
     "→ actually connecting to": isConfigured() ? `${resolvedHost()} (IPv${process.env.DB_IP_FAMILY || 4})` : null,
     DB_PORT: process.env.DB_PORT || "3306 (default)",
     DB_NAME: process.env.DB_NAME || null,
