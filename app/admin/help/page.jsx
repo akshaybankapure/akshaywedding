@@ -40,11 +40,17 @@ export default function HelperGuide() {
           <li>Title it <i>Akshay &amp; Shraddha — Akshata Muhurat</i></li>
           <li>Set visibility to <b>Unlisted</b> — not Public, not Private</li>
           <li>Start it a few minutes before <b>12:00 PM</b></li>
-          <li>Tap <b>Share</b> and copy the link</li>
+          <li>Tap <b>Share</b> and copy the link — it should look like <code>youtu.be/xxxxxxxx</code></li>
         </ol>
         <p className="adTip">
           <AlertTriangle size={13} /> Unlisted means anyone with the invitation can watch,
           but it won't appear in YouTube search. Private would lock guests out.
+        </p>
+        <p className="adTip">
+          <AlertTriangle size={13} /> Use the <b>Share</b> button — don't copy the address
+          from the browser bar on a channel page. That gives a link like
+          <code> youtube.com/@name/live</code>, which has no video id in it and can't be
+          played inside the invitation.
         </p>
       </section>
 
@@ -82,6 +88,14 @@ export default function HelperGuide() {
 
           <dt>No preview appears</dt>
           <dd>The stream is probably set to Private. Change it to Unlisted in YouTube.</dd>
+
+          <dt>It saved, but guests still see a Join button</dt>
+          <dd>
+            The link has no video id — usually a <code>…/@name/live</code> address copied from
+            the browser bar. Open the stream, tap <b>Share</b>, and paste that instead. The
+            <b> What guests are seeing right now</b> box on the Live stream tab tells you
+            which one is in effect.
+          </dd>
 
           <dt>You need to take it down</dt>
           <dd>Press <b>Clear</b>, then <b>Save link</b>. The video section disappears.</dd>

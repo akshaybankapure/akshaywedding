@@ -2,9 +2,17 @@
 import { addBlessing, listBlessings } from "@/lib/server/data";
 export const dynamic = "force-dynamic";
 
+let lastLog = 0;
+function logOnce(e) {
+  const now = Date.now();
+  if (now - lastLog < 60000) return;
+  lastLog = now;
+  console.error("blessings failing:", e?.code || e?.message);
+}
+
 export async function GET() {
   try { return Response.json({ items: await listBlessings() }); }
-  catch { return Response.json({ items: [] }); }
+  catch (e) { logOnce(e); return Response.json({ items: [] }); }
 }
 
 export async function POST(req) {
@@ -14,7 +22,7 @@ export async function POST(req) {
   try {
     return Response.json({ ok: true, items: await addBlessing(body) });
   } catch (e) {
-    console.error("Blessing save failed:", e.message);
-    return Response.json({ error: "could not save" }, { status: 500 });
+    logOnce(e);
+    return Response.json({ error: "could not save" }, { status: 503 });
   }
 }

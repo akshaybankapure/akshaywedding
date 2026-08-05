@@ -9,28 +9,64 @@ import { BookOpen } from "lucide-react";
    Default login: admin / admin123  (change it here, first thing.)
    ═══════════════════════════════════════════════════════════════════ */
 
-const post = (url, body) =>
-  fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body || {}),
-  }).then((r) => r.json().then((j) => ({ status: r.status, ...j })));
+/* A 500 from the server returns an HTML error page, not JSON. Calling
+   .json() on that throws "Unexpected end of JSON input" and the real
+   problem never reaches the screen. Everything below parses defensively
+   and turns failures into a readable message instead. */
+async function readJson(r) {
+  const text = await r.text();
+  if (!text) return { ok: false, error: `Server returned ${r.status} with an empty response.` };
+  try { return JSON.parse(text); }
+  catch {
+    return {
+      ok: false,
+      error: r.status >= 500
+        ? `Server error (${r.status}). Most often this is the database — check the DB_ variables in hPanel.`
+        : `Unexpected response (${r.status}).`,
+    };
+  }
+}
+
+async function post(url, body) {
+  try {
+    const r = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body || {}),
+    });
+    return { status: r.status, ...(await readJson(r)) };
+  } catch (e) {
+    return { status: 0, ok: false, error: "Couldn't reach the server. Is the site running?" };
+  }
+}
+
+async function getJson(url, fallback) {
+  try {
+    const r = await fetch(url, { cache: "no-store" });
+    const j = await readJson(r);
+    return r.ok ? j : { ...j, __failed: true, status: r.status };
+  } catch {
+    return fallback ?? { __failed: true, error: "Couldn't reach the server." };
+  }
+}
 
 export default function Admin() {
   const [session, setSession] = useState(null);   // null = checking
   const [data, setData] = useState(null);
   const [tab, setTab] = useState("live");
   const [busy, setBusy] = useState(false);
+  const [loadErr, setLoadErr] = useState(null);
 
   const loadSession = useCallback(async () => {
-    const r = await fetch("/api/admin/session", { cache: "no-store" }).then((x) => x.json());
+    const r = await getJson("/api/admin/session", { auth: false });
     setSession(r);
     return r;
   }, []);
 
   const loadData = useCallback(async () => {
-    const r = await fetch("/api/admin/data", { cache: "no-store" });
-    if (r.ok) setData(await r.json());
+    const r = await getJson("/api/admin/data");
+    if (!r.__failed) setData(r);
+    else setLoadErr(r.error || "Couldn't load the dashboard.");
   }, []);
 
   useEffect(() => { loadSession(); }, [loadSession]);
@@ -63,6 +99,12 @@ export default function Admin() {
           </button>
         </div>
       </header>
+
+      {loadErr && (
+        <div className="adWarn">
+          <b>Couldn't load your data.</b> {loadErr}
+        </div>
+      )}
 
       {session.isDefault && (
         <div className="adWarn">
@@ -202,6 +244,38 @@ export default function Admin() {
   );
 }
 
+/* Reads the same public endpoint the invitation reads, so you can confirm
+   what guests actually get rather than trusting the form. */
+function LiveCheck() {
+  const [state, setState] = useState({ loading: true });
+  const check = useCallback(() => {
+    setState({ loading: true });
+    getJson("/api/stream", null)
+      .then((d) => setState(d && !d.__failed
+        ? { loading: false, ...d, info: describeStream(d.url) }
+        : { loading: false, error: true }));
+  }, []);
+  useEffect(() => { check(); }, [check]);
+
+  if (state.loading) return <p className="adMuted">Checking…</p>;
+  if (state.error) return <p className="adErr">Couldn't reach the site.</p>;
+  if (!state.url) return (
+    <>
+      <p className="adMuted">Nothing yet — guests see no video section at all.</p>
+      <button className="adBtn tiny" onClick={check} style={{ marginTop: 10 }}>Check again</button>
+    </>
+  );
+  return (
+    <>
+      <p className={state.info?.src ? "adOk" : "adMuted"}>
+        {state.info?.src ? "Playing embedded in the invitation ✓" : "Showing as a Join button"}
+      </p>
+      <p className="adMuted small" style={{ wordBreak: "break-all", marginTop: 4 }}>{state.url}</p>
+      <button className="adBtn tiny" onClick={check} style={{ marginTop: 10 }}>Check again</button>
+    </>
+  );
+}
+
 function StreamPanel() {
   const [url, setUrl] = useState("");
   const [note, setNote] = useState("");
@@ -209,10 +283,8 @@ function StreamPanel() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    fetch("/api/admin/stream", { cache: "no-store" })
-      .then((r) => r.json())
-      .then((d) => { setUrl(d.url || ""); setNote(d.note || ""); })
-      .catch(() => {});
+    getJson("/api/admin/stream", { url: "", note: "" })
+      .then((d) => { setUrl(d.url || ""); setNote(d.note || ""); });
   }, []);
 
   const info = describeStream(url);
@@ -243,10 +315,9 @@ function StreamPanel() {
 
         <p className={info.ok ? "adOk" : "adErr"} style={{ marginBottom: 12 }}>{info.text}</p>
 
-        {info.kind === "youtube" && (
+        {info.src && (
           <div className="adPreview">
-            <iframe src={`https://www.youtube.com/embed/${info.id}`} title="Preview"
-              allowFullScreen loading="lazy" />
+            <iframe src={info.src} title="Preview" allowFullScreen loading="lazy" />
           </div>
         )}
 
@@ -266,6 +337,11 @@ function StreamPanel() {
             Clear
           </button>
         </div>
+      </section>
+
+      <section className="adCard">
+        <h2>What guests are seeing right now</h2>
+        <LiveCheck />
       </section>
 
       <section className="adCard adGuideCta">
@@ -314,7 +390,7 @@ function Login({ onDone }) {
     setBusy(true); setErr("");
     const r = await post("/api/admin/login", { user, password });
     setBusy(false);
-    if (r.ok) onDone(); else setErr(r.error || "Login failed.");
+    if (r.ok) onDone(); else setErr(r.error || `Login failed (${r.status}).`);
   };
 
   return (

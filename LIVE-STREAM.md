@@ -37,3 +37,16 @@ The invitation detects which you've used automatically — `youtube.com/live/…
 The simplest path on the day: open the YouTube app on a well-charged phone on a tripod, **Create → Go live**, set visibility to *Unlisted*, and paste the share link into `stream.url`. Do a five-minute test the night before — mobile live streaming sometimes needs the channel verified 24 hours in advance, which is not something to discover at 11:50 AM.
 
 Leave `url` empty and nothing shows at all.
+
+
+## Which YouTube links work
+
+| Link shape | Result |
+|---|---|
+| `youtu.be/xxxxxxxx` | Embeds ✓ |
+| `youtube.com/live/xxxxxxxx` | Embeds ✓ |
+| `youtube.com/watch?v=xxxxxxxx` | Embeds ✓ |
+| `youtube.com/channel/UCxxxx/live` | Embeds ✓ (whatever that channel is streaming) |
+| `youtube.com/@name/live` | **Won't embed** — no video id in the URL |
+
+Always use YouTube's **Share** button rather than copying the browser address bar from a channel page. The admin panel rejects the `@name/live` form with an explanation rather than silently falling back to a button.

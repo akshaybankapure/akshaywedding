@@ -4,6 +4,7 @@ import { listRsvps, listBlessings, getCeremony, backendStatus, listAkshataGuests
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  try {
   if (!await requireAdmin()) return Response.json({ error: "unauthorised" }, { status: 401 });
 
   const [rsvps, blessings, ceremony, backend, akshataGuests] = await Promise.all([
@@ -34,4 +35,10 @@ export async function GET() {
       namedGuests: ceremony.named || 0,
     },
   });
+  } catch (e) {
+    console.error("dashboard load failed:", e?.code, e?.message);
+    return Response.json(
+      { error: `Database error (${e?.code || "unknown"}). Check the DB_ variables in hPanel.` },
+      { status: 503 });
+  }
 }

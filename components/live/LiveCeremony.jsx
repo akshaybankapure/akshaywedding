@@ -102,23 +102,40 @@ export default function LiveCeremony({ burstRef, reduced }) {
     return () => window.removeEventListener("aws:open-ceremony", onOpen);
   }, []);
 
-  /* taps are batched — one request a second however fast they tap */
+  /* Taps are batched — one request a second however fast anyone taps.
+     If the server is unhappy we back off (1s → 2s → 4s … up to 30s)
+     instead of hammering it once a second, which would otherwise fill
+     the host's error log and slow the site for everyone. Grains are
+     never lost: a failed batch goes back into the pending count. */
   useEffect(() => {
     if (!open) return;
-    const t = setInterval(async () => {
+    let timer, delay = 1000, stopped = false;
+
+    const send = async () => {
       const n = pending.current;
-      if (!n) { refresh(); return; }
-      pending.current = 0;
-      try {
-        const r = await fetch("/api/ceremony", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ n, who: idRef.current, name: name || null }),
-        });
-        if (r.ok) setCount(await r.json());
-      } catch {}
-    }, 1000);
-    return () => clearInterval(t);
+      if (!n) {
+        await refresh();
+      } else {
+        pending.current = 0;
+        try {
+          const r = await fetch("/api/ceremony", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ n, who: idRef.current, name: name || null }),
+          });
+          if (!r.ok) throw new Error(String(r.status));
+          setCount(await r.json());
+          delay = 1000;                       // healthy again
+        } catch {
+          pending.current += n;               // put the grains back
+          delay = Math.min(delay * 2, 30000); // and ease off
+        }
+      }
+      if (!stopped) timer = setTimeout(send, delay);
+    };
+
+    timer = setTimeout(send, delay);
+    return () => { stopped = true; clearTimeout(timer); };
   }, [open, refresh, name]);
 
   const throwAkshata = (e) => {
