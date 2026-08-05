@@ -50,12 +50,23 @@ export default function Invitation() {
 
   const progRef = useRef(0);
   const rootRef = useRef(null);
+  const heroRef = useRef(null);
   const burstRef = useRef(null);
   const ambRef = useRef(null);
   const actRef = useRef(0);
 
   useEffect(() => {
     setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }, []);
+
+  /* Browsers restore the previous scroll position on reload, which dropped
+     a returning guest halfway down the page — the antarpat looked skipped.
+     Always begin at the curtain. */
+  useEffect(() => {
+    if ("scrollRestoration" in window.history) {
+      window.history.scrollRestoration = "manual";
+    }
+    if (!window.location.hash) window.scrollTo(0, 0);
   }, []);
 
   useEffect(() => {
@@ -69,7 +80,20 @@ export default function Invitation() {
       const el = rootRef.current;
       if (el) {
         el.style.setProperty("--prog", p.toFixed(4));
-        const heroP = Math.min(1, window.scrollY / (window.innerHeight * 1.25));
+
+        /* Measure the curtain against the hero's ACTUAL pinned travel
+           instead of a guessed multiple of the viewport. Dividing by
+           innerHeight * 1.25 drifted out of step with the 235svh track and
+           changed mid-gesture when a phone's address bar hid — so the
+           curtain could finish early, or not at all, and the page looked
+           like it skipped straight past the antarpat. */
+        const hero = heroRef.current;
+        let heroP = 0;
+        if (hero) {
+          const travel = hero.offsetHeight - window.innerHeight;   // how long it stays pinned
+          const passed = Math.min(Math.max(window.scrollY - hero.offsetTop, 0), Math.max(travel, 1));
+          heroP = travel > 0 ? passed / travel : 1;
+        }
         el.style.setProperty("--heroP", heroP.toFixed(4));
       }
 
@@ -83,10 +107,19 @@ export default function Invitation() {
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll, { passive: true });
+    window.addEventListener("orientationchange", onScroll, { passive: true });
     read();
+
+    /* Fonts and the 3D canvas settle after first paint and change the
+       page height; re-read so progress isn't based on a stale measure. */
+    const settle = [80, 400, 1200].map((ms) => setTimeout(read, ms));
+    if (document.fonts?.ready) document.fonts.ready.then(read).catch(() => {});
+
     return () => {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
+      window.removeEventListener("orientationchange", onScroll);
+      settle.forEach(clearTimeout);
       cancelAnimationFrame(raf);
     };
   }, []);
@@ -140,7 +173,7 @@ export default function Invitation() {
       {/* The hero is a tall scroll track containing a sticky pin: the
           invitation itself holds perfectly still while the antarpat
           parts above it, and only starts moving once it's fully open. */}
-      <section className="act hero" id="act-antarpat">
+      <section className="act hero" id="act-antarpat" ref={heroRef}>
         <div className="heroPin">
         <Curtain />
         <div className="heroInner">
@@ -216,13 +249,23 @@ export default function Invitation() {
           <p>{CONFIG.giftSub}</p>
         </div>
 
-        <div className="crewCard">
-          <span className="crewTag">{CONFIG.cousinsLineEn}</span>
-          <p className="crewLine dev">{CONFIG.cousinsLine}</p>
-          <div className="kidsNames">
-            {CONFIG.cousins.map((c) => <span className="kidChip" key={c}>{c}</span>)}
-          </div>
-          <p className="kidsRole">{CONFIG.cousinsRole}</p>
+        <div className="eldersCard">
+          <span className="eldersTag">{CONFIG.eldersLineEn}</span>
+          <p className="eldersLine dev">{CONFIG.eldersLine}</p>
+          <ul className="eldersList">
+            {CONFIG.elders.map((e) => (
+              <li key={e.name}>
+                <b>{e.name}</b>
+                {e.rel && (
+                  <span className="eldersRel">
+                    <span className="dev">{e.rel}</span>
+                    <i>{e.relEn}</i>
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+          <p className="eldersNote">{CONFIG.eldersNote}</p>
         </div>
 
         <div className="seniorCrewCard">
@@ -233,6 +276,16 @@ export default function Invitation() {
           </div>
           <p className="seniorCrewRole">{CONFIG.seniorCousinsRole}</p>
         </div>
+
+        <div className="crewCard">
+          <span className="crewTag">{CONFIG.cousinsLineEn}</span>
+          <p className="crewLine dev">{CONFIG.cousinsLine}</p>
+          <div className="kidsNames">
+            {CONFIG.cousins.map((c) => <span className="kidChip" key={c}>{c}</span>)}
+          </div>
+          <p className="kidsRole">{CONFIG.cousinsRole}</p>
+        </div>
+
 
         <div className="kidsCard">
           <span className="kidsTag">A message from the small people</span>
