@@ -20,15 +20,15 @@ Point your domain at the app, and you're live.
 
 ## Connect the MySQL database (recommended)
 
-You already have one: `u805448495_akshayweds`. Using it beats the JSON file in three ways — it survives redeploys, two guests submitting in the same second can't overwrite each other, and you can read the rows in phpMyAdmin.
+You already have one: `uxxxxxxxxxx_xxxxxxxxxxx`. Using it beats the JSON file in three ways — it survives redeploys, two guests submitting in the same second can't overwrite each other, and you can read the rows in phpMyAdmin.
 
 In hPanel → your Node.js app → **Environment Variables**, add five:
 
 ```
 DB_HOST=localhost
 DB_PORT=3306
-DB_NAME=u805448495_akshayweds
-DB_USER=u805448495_akshayweds
+DB_NAME=uxxxxxxxxxx_xxxxxxxxxxx
+DB_USER=uxxxxxxxxxx_xxxxxxxxxxx
 DB_PASSWORD=<the password you set for that MySQL user>
 ```
 
@@ -90,7 +90,7 @@ It tells you which variables the app can see and exactly what MySQL said:
 
 ```json
 { "backend": "mysql", "ok": true,
-  "database": "u805448495_akshayweds",
+  "database": "uxxxxxxxxxx_xxxxxxxxxxx",
   "tables": ["blessings","ceremony","ceremony_guests","rsvps","settings"],
   "verdict": "Connected. Everything is being saved to MySQL." }
 ```
