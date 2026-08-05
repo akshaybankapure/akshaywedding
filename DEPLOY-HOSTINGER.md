@@ -117,3 +117,30 @@ That last one is worth knowing about: **if the variables are missing the app doe
 MySQL grants are per-host, and `localhost` is ambiguous — Node can resolve it to the IPv6 loopback `::1`, while your grant covers `localhost`/`127.0.0.1`. The connection then arrives as `user@'::1'` and MySQL refuses it with *Access denied*, even though the password is correct. It's a confusing failure because everything looks right.
 
 The app now resolves `localhost` to `127.0.0.1` and opens the socket with IPv4 explicitly, so this can't bite you. If you ever need the old behaviour, set `DB_IP_FAMILY=0` (automatic) or `6`.
+
+
+## "There's nothing in my database"
+
+**You don't create the tables.** The app builds all five itself the first time it successfully talks to MySQL. If the database looks empty, it means the connection is failing — the tables are a symptom, not the problem.
+
+Open **`yourdomain.com/api/admin/diagnose`**. It tries every sensible way of connecting and reports each one, then creates the tables if it gets through:
+
+```
+methods tried:
+   socket /var/lib/mysql/mysql.sock     ENOENT
+   socket /var/run/mysqld/mysqld.sock   WORKS ✓
+   tcp 127.0.0.1                        ER_ACCESS_DENIED_ERROR
+verdict: Connected via socket /var/run/mysqld/mysqld.sock. 5 tables ready.
+```
+
+That output tells you exactly what's wrong:
+
+- **Socket works, TCP denied** → your MySQL user is granted for `'user'@'localhost'` only. Nothing to do: the app now uses the socket automatically.
+- **Everything denied** → the password is wrong, or the user isn't attached to this database. Reset it in hPanel → Databases and paste it in again, watching for a trailing space.
+- **Everything ENOENT/ECONNREFUSED** → wrong host. Try `DB_HOST=localhost`.
+
+If you know your socket path, set `DB_SOCKET=/var/lib/mysql/mysql.sock` and it'll skip the search.
+
+`db/schema.sql` in the project is the same schema as a file, if you'd rather create the tables by hand in phpMyAdmin (Import → choose file). It's safe to run twice.
+
+**The admin account isn't in the SQL** — there's no login to create. The first time you sign in at `/admin` with `admin` / `admin123`, the credential row is written to `settings` as a scrypt hash. Change the password from the Settings tab straight afterwards.
