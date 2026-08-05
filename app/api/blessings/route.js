@@ -8,6 +8,7 @@ function logOnce(e) {
   if (now - lastLog < 60000) return;
   lastLog = now;
   console.error("blessings failing:", e?.code || e?.message);
+  if (e?.attempts) for (const a of e.attempts) console.error("      " + a);
 }
 
 export async function GET() {
