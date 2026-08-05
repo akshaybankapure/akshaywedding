@@ -31,6 +31,7 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-anchor: none;
   /* the rail and chrome are fixed; keep anchor jumps clear of them */
   scroll-padding-top: 66px;
   -webkit-text-size-adjust: 100%;
@@ -51,6 +52,7 @@ body {
 
 .root {
   --heroP: 0; --prog: 0;
+  overflow-anchor: none;   /* stop the browser re-anchoring mid-scroll */
   position: relative;
   min-height: 100dvh;
   isolation: isolate;
@@ -85,21 +87,25 @@ body {
   margin: 0 auto;
   padding: 76px 0 84px;
   display: flex; flex-direction: column; gap: 12px;
-  content-visibility: auto;                 /* skip offscreen paint work */
-  contain-intrinsic-size: auto 900px;
+  /* NOTE: content-visibility:auto was removed here deliberately. It
+     estimated each section at 900px until it scrolled into view, so the
+     page's total height changed mid-scroll — which made scroll progress
+     jump and let the browser's scroll anchoring shove the view. These
+     sections are cheap to paint; correctness wins. */
 }
 .act.hero {
   /* a scroll track — the pin inside it is what you actually see */
   display: block;
   width: 100%;
   max-width: none;
-  height: 235dvh;
+  /* svh, not dvh: the small-viewport unit doesn't change when a phone's
+     address bar hides, so the track can't resize under your finger. */
+  height: 235svh;
   padding: 0;
-  content-visibility: visible;
 }
 .heroPin {
   position: sticky; top: 0;
-  height: 100dvh;
+  height: 100svh;
   width: min(100% - 24px, 640px);
   margin: 0 auto;
   display: flex; flex-direction: column;
@@ -980,3 +986,41 @@ body {
 }
 
 .calAll { width: 100%; }
+
+/* ── वडीलधारी मंडळी · the elders ─────────────────────────────── */
+.eldersCard {
+  text-align: center; padding: 18px 15px; border-radius: 16px;
+  border: 1px solid var(--gold);
+  background: linear-gradient(160deg, rgba(227, 179, 65, .1), transparent);
+}
+.eldersTag {
+  display: inline-block; font-size: 9.5px; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--gold); margin-bottom: 6px;
+}
+.eldersLine {
+  font-family: var(--font-dev); font-size: clamp(18px, 5.4vw, 25px);
+  color: var(--gold); line-height: 1.35;
+}
+.eldersList {
+  list-style: none; display: flex; flex-direction: column; gap: 10px;
+  margin: 14px 0 10px;
+}
+.eldersList li {
+  display: flex; flex-direction: column; gap: 1px;
+  padding-bottom: 10px; border-bottom: 1px solid var(--line);
+}
+.eldersList li:last-child { border-bottom: 0; padding-bottom: 0; }
+.eldersList b {
+  font-family: var(--font-display); font-weight: 400;
+  font-size: clamp(15px, 4.4vw, 18px); color: var(--ink);
+}
+.eldersRel { display: flex; flex-direction: column; gap: 0; }
+.eldersRel .dev { font-size: 12.5px; color: var(--gold2); }
+.eldersRel i {
+  font-style: normal; font-size: 10px; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--muted);
+}
+.eldersNote {
+  font-family: var(--font-display); font-style: italic;
+  font-size: 12.5px; color: var(--muted);
+}
