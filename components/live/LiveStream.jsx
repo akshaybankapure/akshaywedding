@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Video, ExternalLink } from "lucide-react";
 import { CONFIG } from "@/lib/config";
-import { youtubeId } from "@/lib/stream";
+import { embedSrc } from "@/lib/stream";
 
 /* ═══════════════════════════════════════════════════════════════════
    LIVE STREAM
@@ -19,7 +19,9 @@ import { youtubeId } from "@/lib/stream";
    ═══════════════════════════════════════════════════════════════════ */
 
 export default function LiveStream({ compact = false }) {
-  const [stream, setStream] = useState(() => CONFIG.stream || { url: "", label: "", note: "" });
+  /* null = not known yet. We render nothing until the server answers,
+     rather than briefly showing whatever is baked into the bundle. */
+  const [stream, setStream] = useState(null);
 
   useEffect(() => {
     let alive = true;
@@ -29,7 +31,10 @@ export default function LiveStream({ compact = false }) {
         if (!r.ok) return;
         const s = await r.json();
         if (alive) setStream(s);
-      } catch { /* keep whatever we already have */ }
+      } catch {
+        /* offline: fall back to the build-time value, if any */
+        if (alive) setStream((cur) => cur ?? (CONFIG.stream || { url: "" }));
+      }
     };
     load();
     const id = setInterval(load, 40000);
@@ -38,20 +43,21 @@ export default function LiveStream({ compact = false }) {
     return () => { alive = false; clearInterval(id); window.removeEventListener("focus", onFocus); };
   }, []);
 
-  const url = (stream?.url || "").trim();
+  if (!stream) return null;
+  const url = (stream.url || "").trim();
   if (!url) return null;
 
   const label = stream.label || "Watch the muhurat live";
-  const yt = youtubeId(url);
+  const src = embedSrc(url);
 
   return (
     <div className={`streamCard ${compact ? "compact" : ""}`}>
       <span className="streamTag"><Video size={12} /> {label}</span>
 
-      {yt ? (
+      {src ? (
         <div className="streamFrame">
           <iframe
-            src={`https://www.youtube.com/embed/${yt}?rel=0&playsinline=1&autoplay=0`}
+            src={src}
             title={label}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen

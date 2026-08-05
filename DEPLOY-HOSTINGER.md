@@ -80,3 +80,40 @@ The hPanel dashboard graphs CPU, RAM and I/O against your plan's limit. This app
 3. Leave a test blessing, then hide it from the dashboard and check it disappears from the wall.
 4. Open `https://yourdomain.com/?rehearsal=1` — the live ceremony opens immediately. Throw some akshata and confirm the counter moves.
 5. Delete your test rows: download the CSVs first, then clear `kv.json` if you want a clean slate.
+
+
+## If the admin page won't log in
+
+Open **`yourdomain.com/api/admin/diagnose`** in a browser. It works without logging in — because the usual reason you need it is that logging in is broken — and it never shows your password or any guest data.
+
+It tells you which variables the app can see and exactly what MySQL said:
+
+```json
+{ "backend": "mysql", "ok": true,
+  "database": "u805448495_akshayweds",
+  "tables": ["blessings","ceremony","ceremony_guests","rsvps","settings"],
+  "verdict": "Connected. Everything is being saved to MySQL." }
+```
+
+The common failures and their fixes:
+
+| What you'll see | Cause | Fix |
+|---|---|---|
+| `ECONNREFUSED` | Wrong host | Set `DB_HOST=localhost` |
+| `ER_ACCESS_DENIED_ERROR` mentioning `@'::1'` | **IPv6.** `localhost` resolved to the IPv6 loopback, but your MySQL user is granted for `localhost`/`127.0.0.1` — so the password is fine, the *host* isn't | Set `DB_HOST=127.0.0.1` and restart. (The app now pins IPv4 automatically, so this shouldn't recur.) |
+| `ER_ACCESS_DENIED_ERROR` (no `::1`) | Wrong user or password | The user is the **full** name, `u123456789_akshayweds`, not the short one |
+| `ER_DBACCESS_DENIED_ERROR` | User isn't attached to the database | Assign the user to the database in hPanel → Databases |
+| `ER_BAD_DB_ERROR` | Wrong database name | Copy it exactly from hPanel |
+| `ETIMEDOUT` | Remote host not whitelisted | Use `localhost`, or add the server IP under Remote MySQL |
+| `"backend": "file"` with a `missing` list | Variables not picked up | Add them in hPanel → your app → Environment Variables, then **restart the app** |
+
+That last one is worth knowing about: **if the variables are missing the app doesn't crash — it quietly writes to `data/kv.json` instead.** Everything appears to work, but a redeploy can wipe it. The `/admin` Settings tab and this endpoint both state which backend is actually live.
+
+**Environment variables are read when the app starts**, so after changing them in hPanel you must restart the Node app for them to take effect.
+
+
+## A note on `localhost` vs `127.0.0.1`
+
+MySQL grants are per-host, and `localhost` is ambiguous — Node can resolve it to the IPv6 loopback `::1`, while your grant covers `localhost`/`127.0.0.1`. The connection then arrives as `user@'::1'` and MySQL refuses it with *Access denied*, even though the password is correct. It's a confusing failure because everything looks right.
+
+The app now resolves `localhost` to `127.0.0.1` and opens the socket with IPv4 explicitly, so this can't bite you. If you ever need the old behaviour, set `DB_IP_FAMILY=0` (automatic) or `6`.
