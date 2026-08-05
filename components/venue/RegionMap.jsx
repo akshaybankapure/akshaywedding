@@ -1,6 +1,7 @@
 "use client";
 
 import { PINS } from "@/lib/config";
+import { useLang } from "@/lib/i18n";
 
 /* ═══════════════════════════════════════════════════════════════════
    The region, drawn rather than embedded.
@@ -27,6 +28,7 @@ const PLACES = {
 };
 
 export default function RegionMap({ active, setActive, reduced }) {
+  const { t } = useLang();
   return (
     <div className="mapWrap">
       <svg className="regionMap" viewBox="0 0 380 440" role="img"
@@ -123,7 +125,7 @@ export default function RegionMap({ active, setActive, reduced }) {
         </g>
       </svg>
 
-      <p className="mapHint">Tap a place for directions · north is up</p>
+      <p className="mapHint">{t("mapHint")}</p>
     </div>
   );
 }

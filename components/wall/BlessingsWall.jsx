@@ -3,10 +3,12 @@
 import { useState, useEffect } from "react";
 import { Send } from "lucide-react";
 import { SEED_BLESSINGS } from "@/lib/config";
+import { useLang } from "@/lib/i18n";
 import { fx } from "@/lib/helpers";
 import { blessingsApi } from "@/lib/store";
 
 export default function BlessingsWall() {
+  const { t } = useLang();
   const [items, setItems] = useState(SEED_BLESSINGS);
   const [name, setName] = useState("");
   const [msg, setMsg] = useState("");
@@ -62,7 +64,7 @@ export default function BlessingsWall() {
             ))}
           </div>
           <button className="btn solid" onClick={post} disabled={!msg.trim()}>
-            <Send size={14} /> {sent ? "Blessed! 🌸" : "Pin it to the wall"}
+            <Send size={14} /> {sent ? "Blessed! 🌸" : t("pinToWall")}
           </button>
         </div>
         <p className="privacyNote" style={{ marginTop: 12 }}>

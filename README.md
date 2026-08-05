@@ -37,17 +37,37 @@ On 09.08.2026 the invitation changes by itself. Thirty minutes before the muhura
 
 Test it any time with **`/?rehearsal=1`** — that runs the whole ceremony immediately.
 
+
+## Languages
+
+English is the default. Marathi and Kannada are one tap away via the switcher in the top bar, and the choice lives in the URL so you can send a link already in the right language:
+
+| Link | Opens in |
+|---|---|
+| `yourdomain.com/` | English |
+| `yourdomain.com/?lang=mr` | Marathi (`?lang=ma` also works) |
+| `yourdomain.com/?lang=kn` | Kannada (`?lang=ka` also works) |
+
+Send the Kolhapur side the Marathi link and the Belagavi side the Kannada one. All strings live in `lib/i18n.jsx` — add a key there and it's available everywhere via `t("key")`. Names of people and places are never translated, only shown in the script we have a verified spelling for.
+
+## Handing the day to someone else
+
+Whoever is helping only needs one link: **`/admin/help`**. It's a step-by-step guide inside the site — starting an Unlisted YouTube stream, pasting the link into the **Live stream** tab, and what each warning means. It has a Print button, and it's linked from the dashboard header and the stream panel. `FOR-THE-HELPER.md` is the same thing as a file if you'd rather forward that.
+
+## Testing the wedding-day ceremony
+
+See **TESTING-THE-WEDDING-DAY.md**. Short version: `/?rehearsal=1` opens it right now, and `/?at=-20` or `/?at=0` lets you stand at any moment around the muhurat without touching your clock.
+
 ## Edit your details
 
 Everything content-ish lives in **`lib/config.js`** — names (Latin/Devanagari/Kannada), parents, siblings, the family roll-call, all six events, story beats, map pins, the local guide, RSVP options and seed blessings. The hero, calendar links, .ics files, footer and monogram all read from it.
 
 Open TODOs (marked with ✏️ in `lib/config.js`):
 
-1. **Shraddha's aai** — append her name to `bride.parents` and add the "कै. सौ. …" entry to `remembrance`.
-2. **Muhurat** — `weddingISO` + `muhurtLabel` still carry the 11:47 AM placeholder.
-3. **RSVP number** — real phone number in `contact`.
+1. **Bhojan timing** — lunch is assumed to run 1:00–3:30 pm, following the akshata. Adjust in `EVENTS` if the kitchen has a different plan.
+2. **Bhastgi** — listed as the day's opening ritual at 8:30. Check the one-line description reads right to family.
 
-Confirmed and in place: the date (09.08.2026), the venue (Smt. Malini Patil Bhavan, Gavani, Belagavi district — with the real Maps link), the single-day schedule (Haldi → Vivah → Bhojan, all at the venue), both families, and the no-gifts request.
+Confirmed and in place: the date and running order (Bhastgi 8:30 · Haldi 9:30 · **Akshata 12:00** · Bhojan after), the venue (Smt. Malini Patil Bhavan, Gavani, Belagavi district — with the real Maps link), the single-day schedule (Haldi → Vivah → Bhojan, all at the venue), both families, and the no-gifts request.
 
 
 ## Where things live

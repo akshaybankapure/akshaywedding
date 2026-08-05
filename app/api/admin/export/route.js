@@ -1,6 +1,6 @@
 /* CSV download — open in Excel, or hand to the caterer. */
 import { requireAdmin } from "@/lib/server/auth";
-import { listRsvps, listBlessings } from "@/lib/server/data";
+import { listRsvps, listBlessings, listAkshataGuests } from "@/lib/server/data";
 export const dynamic = "force-dynamic";
 
 const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
@@ -11,7 +11,14 @@ export async function GET(req) {
   const which = new URL(req.url).searchParams.get("type") || "rsvps";
   let head, rows, name;
 
-  if (which === "blessings") {
+  if (which === "akshata") {
+    name = "akshata";
+    head = ["Name", "Akshata thrown", "Joined", "Last threw"];
+    rows = (await listAkshataGuests()).map((g) => [
+      g.name || "(didn't give a name)", g.akshata,
+      g.joined ? when(g.joined) : "", g.last ? when(g.last) : "",
+    ]);
+  } else if (which === "blessings") {
     name = "blessings";
     head = ["When", "Name", "Message", "Hidden"];
     rows = (await listBlessings({ includeHidden: true }))

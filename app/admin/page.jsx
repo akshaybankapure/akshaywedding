@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { describeStream } from "@/lib/stream";
+import { BookOpen } from "lucide-react";
 
 /* ═══════════════════════════════════════════════════════════════════
    Admin dashboard — /admin
@@ -17,7 +19,7 @@ const post = (url, body) =>
 export default function Admin() {
   const [session, setSession] = useState(null);   // null = checking
   const [data, setData] = useState(null);
-  const [tab, setTab] = useState("rsvps");
+  const [tab, setTab] = useState("live");
   const [busy, setBusy] = useState(false);
 
   const loadSession = useCallback(async () => {
@@ -54,6 +56,7 @@ export default function Admin() {
           <p className="adMuted">Guest list · 09.08.2026</p>
         </div>
         <div className="adTopBtns">
+          <a className="adBtn" href="/admin/help"><BookOpen size={14} /> Guide</a>
           <button className="adBtn" onClick={loadData} disabled={busy}>Refresh</button>
           <button className="adBtn" onClick={async () => { await post("/api/admin/logout"); loadSession(); }}>
             Sign out
@@ -76,6 +79,7 @@ export default function Admin() {
           <Stat n={s.notAttending} label="Can't make it" />
           <Stat n={s.blessings} label="Blessings" />
           <Stat n={s.akshata} label="Akshata thrown" />
+          <Stat n={s.liveGuests} label="Threw akshata" />
         </section>
       )}
 
@@ -92,12 +96,16 @@ export default function Admin() {
       )}
 
       <nav className="adTabs">
-        {["rsvps", "blessings", "settings"].map((t) => (
+        {["live", "rsvps", "blessings", "akshata", "settings"].map((t) => (
           <button key={t} className={tab === t ? "on" : ""} onClick={() => setTab(t)}>
-            {t === "rsvps" ? "RSVPs" : t === "blessings" ? "Blessings" : "Settings"}
+            {t === "live" ? "Live stream" : t === "rsvps" ? "RSVPs"
+              : t === "blessings" ? "Blessings"
+              : t === "akshata" ? "Akshata" : "Settings"}
           </button>
         ))}
       </nav>
+
+      {tab === "live" && <StreamPanel />}
 
       {tab === "rsvps" && (
         <section className="adCard">
@@ -158,8 +166,133 @@ export default function Admin() {
         </section>
       )}
 
+      {tab === "akshata" && (
+        <section className="adCard">
+          <div className="adCardTop">
+            <h2>Who threw akshata ({data?.akshataGuests?.length || 0} people)</h2>
+            <a className="adBtn" href="/api/admin/export?type=akshata">Download CSV</a>
+          </div>
+          {!data?.akshataGuests?.length ? (
+            <p className="adMuted">Nobody has joined the live muhurat yet.</p>
+          ) : (
+            <>
+              <p className="adMuted small" style={{ marginBottom: 10 }}>
+                {s?.akshata} grains from {s?.liveGuests} {s?.liveGuests === 1 ? "person" : "people"}
+                {s?.namedGuests ? ` · ${s.namedGuests} gave their name` : ""}
+              </p>
+              <div className="adRegistry">
+                {data.akshataGuests.map((g) => (
+                  <div className="adRegRow" key={g.id}>
+                    <b className={g.name ? "" : "anon"}>{g.name || "didn't give a name"}</b>
+                    <span className="adRegCount">{g.akshata}</span>
+                    <span className="adRegTime">
+                      {g.last ? new Date(g.last).toLocaleTimeString("en-IN",
+                        { hour: "2-digit", minute: "2-digit" }) : ""}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </section>
+      )}
+
       {tab === "settings" && <Settings user={session.user} onDone={loadSession} backend={data?.backend} />}
     </main>
+  );
+}
+
+function StreamPanel() {
+  const [url, setUrl] = useState("");
+  const [note, setNote] = useState("");
+  const [msg, setMsg] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/admin/stream", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => { setUrl(d.url || ""); setNote(d.note || ""); })
+      .catch(() => {});
+  }, []);
+
+  const info = describeStream(url);
+
+  const save = async () => {
+    setBusy(true);
+    const r = await post("/api/admin/stream", { url, note });
+    setBusy(false);
+    setMsg(r.ok
+      ? { ok: true, text: "Saved. It's live on the invitation within a minute." }
+      : { ok: false, text: r.error || "Could not save." });
+  };
+
+  return (
+    <>
+      <section className="adCard">
+        <h2>Live stream link</h2>
+        <p className="adMuted small" style={{ marginBottom: 12 }}>
+          Paste the link here on the day. Guests see it within a minute — including
+          anyone who already has the invitation open. Leave it empty to hide the section.
+        </p>
+
+        <label>Stream link
+          <input className="adInput" value={url} placeholder="https://youtube.com/live/…"
+            autoCapitalize="none" spellCheck="false"
+            onChange={(e) => setUrl(e.target.value)} />
+        </label>
+
+        <p className={info.ok ? "adOk" : "adErr"} style={{ marginBottom: 12 }}>{info.text}</p>
+
+        {info.kind === "youtube" && (
+          <div className="adPreview">
+            <iframe src={`https://www.youtube.com/embed/${info.id}`} title="Preview"
+              allowFullScreen loading="lazy" />
+          </div>
+        )}
+
+        <label>Note under the player <span className="adMuted small">(optional)</span>
+          <input className="adInput" value={note} maxLength={140}
+            placeholder="Starts at 11:55 AM"
+            onChange={(e) => setNote(e.target.value)} />
+        </label>
+
+        {msg && <p className={msg.ok ? "adOk" : "adErr"}>{msg.text}</p>}
+
+        <div className="adTopBtns">
+          <button className="adBtn solid" onClick={save} disabled={busy || !info.ok}>
+            {busy ? "Saving…" : "Save link"}
+          </button>
+          <button className="adBtn" onClick={() => { setUrl(""); setNote(""); }}>
+            Clear
+          </button>
+        </div>
+      </section>
+
+      <section className="adCard adGuideCta">
+        <div>
+          <h2 style={{ marginBottom: 4 }}>First time doing this?</h2>
+          <p className="adMuted small">
+            Step-by-step: starting the YouTube stream, pasting it here, and what to do
+            if something looks wrong.
+          </p>
+        </div>
+        <a className="adBtn solid" href="/admin/help"><BookOpen size={14} /> Open the guide</a>
+      </section>
+
+      <section className="adCard">
+        <h2>Which link to use</h2>
+        <p className="adMuted">
+          <b>YouTube Live</b> (set to Unlisted) plays inside the invitation, has no
+          limit on viewers, needs no Google account, and saves a recording afterwards.
+          Paste the share link — <code>youtube.com/live/…</code> or <code>youtu.be/…</code>.
+        </p>
+        <p className="adMuted" style={{ marginTop: 8 }}>
+          <b>Google Meet</b> can't be embedded — Google blocks it — so it shows as a
+          Join button instead, and free Meet stops at 100 people. Fine for a small
+          group, risky for a big one.
+        </p>
+      </section>
+    </>
   );
 }
 

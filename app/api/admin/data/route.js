@@ -1,13 +1,14 @@
 /* Everything the dashboard needs, in one call. */
 import { requireAdmin } from "@/lib/server/auth";
-import { listRsvps, listBlessings, getCeremony, backendStatus } from "@/lib/server/data";
+import { listRsvps, listBlessings, getCeremony, backendStatus, listAkshataGuests } from "@/lib/server/data";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   if (!await requireAdmin()) return Response.json({ error: "unauthorised" }, { status: 401 });
 
-  const [rsvps, blessings, ceremony, backend] = await Promise.all([
+  const [rsvps, blessings, ceremony, backend, akshataGuests] = await Promise.all([
     listRsvps(), listBlessings({ includeHidden: true }), getCeremony(), backendStatus(),
+    listAkshataGuests(),
   ]);
 
   const attending = rsvps.filter((r) => r.attending);
@@ -20,7 +21,7 @@ export async function GET() {
   }, {});
 
   return Response.json({
-    rsvps, blessings, backend,
+    rsvps, blessings, backend, akshataGuests,
     stats: {
       responses: rsvps.length,
       attending: attending.length,
@@ -30,6 +31,7 @@ export async function GET() {
       blessings: blessings.length,
       akshata: ceremony.akshata,
       liveGuests: ceremony.guests,
+      namedGuests: ceremony.named || 0,
     },
   });
 }

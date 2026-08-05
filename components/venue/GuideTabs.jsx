@@ -3,13 +3,15 @@
 import { useState } from "react";
 import { Utensils, Plane, Shirt, Star } from "lucide-react";
 import { GUIDE } from "@/lib/config";
+import { useLang } from "@/lib/i18n";
 import RSVP from "@/components/rsvp/Rsvp";
 
 export default function GuideTabs() {
+  const { t } = useLang();
   const [tab, setTab] = useState("khaana");
   const TABS = [
-    ["khaana", "Khaana", Utensils], ["pehnava", "Pehnava", Shirt],
-    ["pravaas", "Pravaas", Plane], ["insider", "Insider", Star],
+    ["khaana", t("tabFood"), Utensils], ["pehnava", t("tabDress"), Shirt],
+    ["pravaas", t("tabTravel"), Plane], ["insider", t("tabInsider"), Star],
   ];
   return (
     <div>
