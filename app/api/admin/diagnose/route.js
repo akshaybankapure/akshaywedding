@@ -3,7 +3,7 @@
    that logging in is broken. It never reveals the password or any guest
    data — only which variables are set, which connection method works,
    and what MySQL said. */
-import { isConfigured, getPool, ensureSchema, candidates, probe, connectionLabel } from "@/lib/server/mysql";
+import { isConfigured, getPool, ensureSchema, candidates, probe, connectionLabel, isAuthFailure } from "@/lib/server/mysql";
 export const dynamic = "force-dynamic";
 
 const HINTS = {
@@ -52,12 +52,38 @@ export async function GET() {
   const working = attempts.find((a) => a.result === "WORKS ✓");
 
   if (!working) {
-    const denied = attempts.some((a) => a.result === "ER_ACCESS_DENIED_ERROR");
+    /* The single most useful distinction: did MySQL answer and refuse us
+       (an authentication problem — changing the host will not help), or
+       did nothing answer at all (a routing problem)? */
+    const reached = attempts.some((a) => isAuthFailure(a.result));
+    const denied = attempts.filter((a) => a.result === "ER_ACCESS_DENIED_ERROR").length;
+    const noDb = attempts.some((a) => a.result === "ER_BAD_DB_ERROR");
+    const noRights = attempts.some((a) => a.result === "ER_DBACCESS_DENIED_ERROR");
+
+    let verdict, fix;
+    if (noDb) {
+      verdict = "MySQL answered, but there is no database with that name.";
+      fix = ["Copy DB_NAME exactly from hPanel → Databases (it includes the u… prefix).", "Restart the Node app after changing it."];
+    } else if (noRights) {
+      verdict = "The user exists but has no rights on that database.";
+      fix = ["In hPanel → Databases, check the user is attached to this database.", "Restart the Node app."];
+    } else if (denied) {
+      verdict = `MySQL is reachable — it answered and rejected the login on ${denied} method(s). This is an authentication problem, so changing DB_HOST will not help.`;
+      fix = [
+        "In hPanel → Databases, use 'Change password' on the MySQL user and set a NEW simple password (letters and numbers only — a # or quote in an environment variable is easily mangled).",
+        "Paste exactly that into DB_PASSWORD. Check for a trailing space.",
+        "Confirm DB_USER is the FULL name, e.g. u805448495_akshayweds — not the short one.",
+        "Restart the Node app — variables are only read at startup.",
+        "Verify the same username and password work in phpMyAdmin.",
+      ];
+    } else {
+      verdict = "Nothing answered on any route — MySQL wasn't reached at all.";
+      fix = ["Try DB_HOST=localhost.", "If your MySQL is on another host, add this server's IP under hPanel → Remote MySQL.", "Restart the Node app."];
+    }
+
     return Response.json({
-      backend: "mysql", ok: false, env, attempts,
-      verdict: denied
-        ? "Every method was refused with ACCESS DENIED. The password in DB_PASSWORD is almost certainly wrong, or the MySQL user isn't attached to this database. Reset the password in hPanel → Databases and paste it in again — watch for a trailing space."
-        : HINTS.DB_NO_ROUTE,
+      backend: "mysql", ok: false, reachedServer: reached,
+      env, attempts, verdict, whatToDo: fix,
     }, { status: 503 });
   }
 
