@@ -203,12 +203,23 @@ export default function Invitation() {
           <p className="venueLine">{CONFIG.venue.name}</p>
           <p className="venueSub">{CONFIG.venue.area}</p>
 
-          <div className="cta">
-            <a className="btn solid" href={CONFIG.calendarUrl} target="_blank" rel="noopener noreferrer">
-              <CalendarPlus size={15} /> {t("saveTheDate")}
+          {/* The clock and the way in, as one block: a guest who can't
+              travel sees how long is left and the door to walk through
+              without scrolling for it. */}
+          <div className="heroLive">
+            <Countdown compact />
+            <JoinLive />
+          </div>
+
+          {/* Quiet links, not buttons: the join rail above is the only
+              thing the hero asks you to press. Both live in full inside
+              their own acts further down. */}
+          <div className="heroLinks">
+            <a href={CONFIG.calendarUrl} target="_blank" rel="noopener noreferrer">
+              <CalendarPlus size={13} /> {t("addToCalendar")}
             </a>
-            <a className="btn" href={CONFIG.venue.maps} target="_blank" rel="noopener noreferrer">
-              <MapPin size={15} /> {t("venueBtn")}
+            <a href={CONFIG.venue.maps} target="_blank" rel="noopener noreferrer">
+              <MapPin size={13} /> {t("venueBtn")}
             </a>
           </div>
         </div>
@@ -334,7 +345,6 @@ export default function Invitation() {
           <CalendarPlus size={15} /> Add the muhurat to your calendar
         </a>
 
-        <JoinLive />
         <LiveStream />
         {EVENTS.map((e) => (
           <article className="ev" key={e.id}>
