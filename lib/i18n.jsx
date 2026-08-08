@@ -49,6 +49,7 @@ const T = {
   /* ── hero ── */
   weds:           { en: "weds", mr: "विवाहबद्ध", kn: "ವಿವಾಹ" },
   saveTheDate:    { en: "Save the date", mr: "तारीख जपून ठेवा", kn: "ದಿನಾಂಕ ಉಳಿಸಿ" },
+  addToCalendar:  { en: "Add to calendar", mr: "कॅलेंडरला जोडा", kn: "ಕ್ಯಾಲೆಂಡರ್‌ಗೆ ಸೇರಿಸಿ" },
   venueBtn:       { en: "Venue", mr: "ठिकाण", kn: "ಸ್ಥಳ" },
   scrollSlowly:   { en: "scroll slowly", mr: "हळू हळू स्क्रोल करा", kn: "ನಿಧಾನವಾಗಿ ಸ್ಕ್ರೋಲ್ ಮಾಡಿ" },
   sunday:         { en: "Sunday", mr: "रविवार", kn: "ಭಾನುವಾರ" },
